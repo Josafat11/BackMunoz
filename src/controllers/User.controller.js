@@ -55,7 +55,7 @@ export const verifyAccount = async (req, res) => {
     }
 };
 
-// Función login para autenticación con JWT
+// Controlador login para autenticación con JWT en User.controller.js
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -76,12 +76,49 @@ export const login = async (req, res) => {
         user.lockUntil = null;
         await user.save();
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, SECRET, { expiresIn: '2h' });
-        res.status(200).json({ message: "Inicio de sesión exitoso", token });
+        const token = jwt.sign({ userId: user._id, role: user.role, name: user.name }, SECRET, { expiresIn: '2h' });
+        res.status(200).json({
+            message: "Inicio de sesión exitoso",
+            token,
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
+        });
     } catch (error) {
         console.error("Error en login:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
+};
+
+// Controlador checkSession en User.controller.js
+export const checkSession = (req, res) => {
+    try {
+        if (req.session.userId) {
+            return res.status(200).json({
+                isAuthenticated: true,
+                user: {
+                    id: req.session.userId,
+                    email: req.session.email,
+                    name: req.session.name, // Incluye el nombre
+                },
+            });
+        } else {
+            return res.status(200).json({ isAuthenticated: false });
+        }
+    } catch (error) {
+        console.error("Error en checkSession:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
+//cerrar sesion
+export const logout = (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ message: "Error al cerrar sesión" });
+        }
+
+        res.clearCookie("connect.sid"); // Borra la cookie de sesión
+        return res.status(200).json({ message: "Sesión cerrada con éxito" });
+    });
 };
 
 // Middleware para verificar token
@@ -141,3 +178,30 @@ export const resetPassword = async (req, res) => {
         res.status(400).json({ message: "Token inválido o expirado" });
     }
 };
+
+
+//informacion de usuarios
+export const getRecentUsers = async (req, res) => {
+    try {
+        const recentUsers = await User.find().sort({ createdAt: -1 }).limit(5);
+        res.status(200).json(recentUsers);
+    } catch (error) {
+        console.error("Error al obtener usuarios recientes:", error);
+        res.status(500).json({ message: "Error al obtener usuarios recientes" });
+    }
+};
+
+//informacion de usuarios bloqueados
+export const getRecentBlockedUsers = async (req, res) => {
+    try {
+      const blockedUsers = await User.find({
+        lockedUntil: { $exists: true, $gt: new Date() },
+      })
+        .sort({ lockedUntil: -1 })
+        .limit(5);
+      res.status(200).json(blockedUsers);
+    } catch (error) {
+      console.error("Error al obtener usuarios bloqueados:", error);
+      res.status(500).json({ message: "Error al obtener usuarios bloqueados" });
+    }
+  };
