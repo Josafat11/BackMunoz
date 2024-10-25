@@ -12,9 +12,13 @@ router.get('/verify/:token', userController.verifyAccount); // Verificar cuenta 
 router.post('/reset-password/:token', userController.resetPassword); // Restablecer la contraseña
 
 // Rutas protegidas (requieren token de autenticación)
-router.get('/profile', isAuthenticated, userController.getProfile); // Perfil del usuario autenticado
+router.get('/profile', isAuthenticated, userController.getProfile); // Perfil del usuario 
+router.get('/check-session', isAuthenticated, userController.checkSession); // Verificar la sesión
+router.post('/logout', isAuthenticated, userController.logout); // Cerrar sesión
 
 // Rutas protegidas para CRUD de usuarios (requiere token y rol de administrador)
 router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers); // Obtener todos los usuarios
-
+// Rutas del admin para ver usuarios recientes y bloqueados
+router.get('/admin/recent-users', isAuthenticated, isAdmin, userController.getRecentUsers);
+router.get('/admin/recent-blocked', isAuthenticated, isAdmin, userController.getRecentBlockedUsers);
 export default router;
