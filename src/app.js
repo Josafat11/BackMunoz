@@ -5,7 +5,8 @@ import cors from 'cors';
 // Importación de las rutas desde src/routes
 import user from './routes/User.routes.js';
 import politicas from './routes/Politicas.routes.js';
-
+import terminos from './routes/Terminos.routes.js';
+import deslinde from './routes/Deslinde.routes.js';
 
 
 // Configuración de CORS para producción
@@ -42,6 +43,9 @@ app.options('*', cors( corsOptions ));
 // Rutas
 app.use('/api/auth', user);
 app.use('/api/docs', politicas);
+app.use('/api/docs', terminos);
+app.use('/api/docs', deslinde);
+
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
