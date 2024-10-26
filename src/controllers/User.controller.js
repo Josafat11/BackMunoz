@@ -150,7 +150,6 @@ export const getProfile = async (req, res) => {
 
 // Obtener todos los usuarios solo para admins
 export const getAllUsers = async (req, res) => {
-    if (req.role !== 'admin') return res.status(403).json({ message: "Acceso denegado" });
     try {
         const users = await User.find().select("-password");
         res.status(200).json(users);

@@ -16,8 +16,10 @@ router.get('/profile', isAuthenticated, userController.getProfile); // Perfil de
 router.get('/check-session', isAuthenticated, userController.checkSession); // Verificar la sesión
 router.post('/logout', isAuthenticated, userController.logout); // Cerrar sesión
 
-// Rutas protegidas para CRUD de usuarios (requiere token y rol de administrador)
-router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers); // Obtener todos los usuarios
+
+// Ruta protegida para obtener todos los usuarios (solo admin)
+router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers);
+
 // Rutas del admin para ver usuarios recientes y bloqueados
 router.get('/admin/recent-users', isAuthenticated, isAdmin, userController.getRecentUsers);
 router.get('/admin/recent-blocked', isAuthenticated, isAdmin, userController.getRecentBlockedUsers);
