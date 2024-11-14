@@ -7,7 +7,7 @@ import user from './routes/User.routes.js';
 import politicas from './routes/Politicas.routes.js';
 import terminos from './routes/Terminos.routes.js';
 import deslinde from './routes/Deslinde.routes.js';
-
+import logoRoutes from './routes/Logo.routes.js';
 
 // Configuración de CORS para producción
 const listWhite = [
@@ -45,6 +45,7 @@ app.use('/api/auth', user);
 app.use('/api/docs', politicas);
 app.use('/api/docs', terminos);
 app.use('/api/docs', deslinde);
+app.use('/api/logo', logoRoutes);
 
 
 app.get('/', (req, res) => {
