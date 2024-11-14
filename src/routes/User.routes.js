@@ -8,6 +8,8 @@ const router = Router();
 router.post('/signup', userController.signUp); // Registro de usuario
 router.post('/login', userController.login); // Inicio de sesión y entrega de token
 router.get('/verify/:token', userController.verifyAccount); // Verificar cuenta por token
+router.post('/send-reset-email', userController.sendPasswordResetLink);
+router.post('/reset-password/:token', userController.resetPassword);
 
 router.post('/reset-password/:token', userController.resetPassword); // Restablecer la contraseña
 

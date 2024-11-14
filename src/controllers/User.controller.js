@@ -12,7 +12,7 @@ const LOGIN_TIMEOUT = 1 * 60 * 1000;
 export const signUp = async (req, res) => {
     try {
         const { name, lastname, email, telefono, fechadenacimiento, user, preguntaSecreta, respuestaSecreta, password } = req.body;
-        if (!name || !lastname || name.length < 3 || lastname.length < 3) return res.status(400).json({ message: "Datos incompletos o inválidos" });
+        if (!name || !lastname || name.length <  2 || lastname.length < 2) return res.status(400).json({ message: "Datos incompletos o inválidos" });
 
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ message: "El correo ya existe" });
@@ -21,9 +21,9 @@ export const signUp = async (req, res) => {
         const newUser = new User({ name, lastname, email, telefono, fechadenacimiento, user, preguntaSecreta, respuestaSecreta, password: hashedPassword, verified: false });
         const token = jwt.sign({ email: newUser.email }, SECRET, { expiresIn: '1h' });
 
-        const verificationUrl = `http://localhost:5173/verify/${token}`;
+        const verificationUrl = `http://localhost:3000/verify/${token}`;
         await transporter.sendMail({
-            from: '"Soporte 👻" <yadi.bta03@gmail.com>',
+            from: '"Soporte 👻" <jose1fat@gmail.com>',
             to: newUser.email,
             subject: "Verifica tu cuenta ✔️",
             html: `<p>Hola ${newUser.name},</p><p>Haz clic en el enlace para verificar tu cuenta:</p><a href="${verificationUrl}">Verificar Cuenta</a><p>Este enlace expirará en 1 hora.</p>`
@@ -40,18 +40,32 @@ export const signUp = async (req, res) => {
 export const verifyAccount = async (req, res) => {
     try {
         const { token } = req.params;
+        
+        // Verificar el token
         const decoded = jwt.verify(token, SECRET);
+
+        // Buscar al usuario con el email decodificado desde el token
         const user = await User.findOne({ email: decoded.email });
 
         if (!user) return res.status(404).json({ message: "Usuario no encontrado." });
         if (user.verified) return res.status(400).json({ message: "La cuenta ya está verificada." });
 
+        // Marcar al usuario como verificado y guardar los cambios
         user.verified = true;
         await user.save();
+
         res.status(200).json({ message: "Cuenta verificada exitosamente." });
     } catch (error) {
-        console.error("Error al verificar la cuenta:", error);
-        res.status(400).json({ message: "Token inválido o expirado." });
+        console.error("Error al verificar la cuenta:", error.message || error);
+
+        // Verificar si el error es de token expirado
+        if (error.name === 'TokenExpiredError') {
+            return res.status(400).json({ message: "Token expirado." });
+        } else if (error.name === 'JsonWebTokenError') {
+            return res.status(400).json({ message: "Token inválido." });
+        }
+
+        res.status(500).json({ message: "Error interno del servidor al verificar la cuenta." });
     }
 };
 
@@ -204,3 +218,42 @@ export const getRecentBlockedUsers = async (req, res) => {
       res.status(500).json({ message: "Error al obtener usuarios bloqueados" });
     }
   };
+
+  export const sendPasswordResetLink = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Buscar el usuario por email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        // Generar un token de restablecimiento de contraseña (expira en 1 hora)
+        const token = jwt.sign({ email: user.email, userId: user._id }, SECRET, {
+            expiresIn: "1h",
+        });
+
+        // Crear el enlace de restablecimiento
+        const resetUrl = `http://localhost:3000/restorepassword/${token}`;
+        //const resetUrl = `https://front-munoz.vercel.app/restorepassword/${token}`;
+
+        // Enviar el correo con el enlace de restablecimiento de contraseña
+        await transporter.sendMail({
+            from: '"Soporte 👻" <soporte@tucorreo.com>',  // Cambia el correo de soporte según tu configuración
+            to: user.email,
+            subject: "Restablece tu contraseña ✔️",
+            html: `
+                <p>Hola ${user.name},</p>
+                <p>Recibimos una solicitud para restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para continuar:</p>
+                <a href="${resetUrl}">Restablecer Contraseña</a>
+                <p>Este enlace expirará en 1 hora.</p>
+            `,
+        });
+
+        res.status(200).json({ message: "Correo de restablecimiento enviado con éxito." });
+    } catch (error) {
+        console.error("Error en sendPasswordResetLink:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
