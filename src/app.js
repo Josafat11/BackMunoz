@@ -13,8 +13,6 @@ import logoRoutes from './routes/Logo.routes.js';
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
     'https://frontend-alpha-six-22.vercel.app', // Frontend correcto en producción
-    'https://192.168.1.77:5000',
-    
 ];
 
 const corsOptions = {
