@@ -13,7 +13,7 @@ import logoRoutes from './routes/Logo.routes.js';
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
     'https://frontend-alpha-six-22.vercel.app', // Frontend correcto en producción
-    'http://192.168.1.77:5000', // linux prueba
+    'https://192.168.1.77:5000',
     
 ];
 
@@ -37,8 +37,8 @@ const corsOptions = {
 const app = express();
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(cors(  ));
-
+app.use(cors( corsOptions ));
+app.options('*', cors( corsOptions ));
 
 
 
