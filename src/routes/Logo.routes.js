@@ -10,4 +10,3 @@ router.get('/ultimo', logoController.obtenerUltimoLogo); // Obtener el logo más
 router.get('/todos', logoController.obtenerTodosLosLogos); // Obtener todos los logos
 
 export default router;
-uu
