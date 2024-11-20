@@ -11,25 +11,69 @@ const LOGIN_TIMEOUT = 1 * 60 * 1000;
 // Registro de usuario y verificación de cuenta
 export const signUp = async (req, res) => {
     try {
-        const { name, lastname, email, telefono, fechadenacimiento, user, preguntaSecreta, respuestaSecreta, password } = req.body;
-        if (!name || !lastname || name.length <  2 || lastname.length < 2) return res.status(400).json({ message: "Datos incompletos o inválidos" });
+        const { 
+            name, 
+            lastname, 
+            email, 
+            telefono, 
+            fechadenacimiento, 
+            user, 
+            preguntaSecreta, 
+            respuestaSecreta, 
+            password 
+        } = req.body;
 
+        if (!name || !lastname || name.length < 2 || lastname.length < 2) {
+            return res.status(400).json({ message: "Datos incompletos o inválidos" });
+        }
+
+        // Verificar si el correo ya está registrado
         const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: "El correo ya existe" });
+        if (existingUser) {
+            return res.status(400).json({ message: "El correo ya existe" });
+        }
 
+        // Hashear la contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ name, lastname, email, telefono, fechadenacimiento, user, preguntaSecreta, respuestaSecreta, password: hashedPassword, verified: false });
+
+        // Crear un nuevo usuario
+        const newUser = new User({ 
+            name, 
+            lastname, 
+            email, 
+            telefono, 
+            fechadenacimiento, 
+            user, 
+            preguntaSecreta, 
+            respuestaSecreta, 
+            password: hashedPassword, 
+            verified: false 
+        });
+
+        // Generar un token de verificación
         const token = jwt.sign({ email: newUser.email }, SECRET, { expiresIn: '1h' });
 
-        const verificationUrl = `http://localhost:3000/verify/${token}`;
+        // Enlace de verificación
+        //const verificationUrl = `http://localhost:3000/verify/${token}`;
+        const verificationUrl = `https://front-munoz.vercel.app/verify/${token}`;
+
+        // Enviar correo de verificación
         await transporter.sendMail({
             from: '"Soporte 👻" <jose1fat@gmail.com>',
             to: newUser.email,
             subject: "Verifica tu cuenta ✔️",
-            html: `<p>Hola ${newUser.name},</p><p>Haz clic en el enlace para verificar tu cuenta:</p><a href="${verificationUrl}">Verificar Cuenta</a><p>Este enlace expirará en 1 hora.</p>`
+            html: `
+                <p>Hola ${newUser.name},</p>
+                <p>Haz clic en el enlace para verificar tu cuenta:</p>
+                <a href="${verificationUrl}">Verificar Cuenta</a>
+                <p>Este enlace expirará en 1 hora.</p>
+            `
         });
 
+        // Guardar usuario en la base de datos
         await newUser.save();
+
+        // Respuesta exitosa
         res.status(200).json({ message: "Usuario registrado exitosamente. Revisa tu correo para verificar tu cuenta." });
     } catch (error) {
         console.error("Error en signUp:", error);
@@ -73,35 +117,73 @@ export const verifyAccount = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ message: "Correo y contraseña son requeridos" });
+
+        if (!email || !password) 
+            return res.status(400).json({ message: "Correo y contraseña son requeridos" });
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: "Usuario no encontrado" });
+        if (!user) 
+            return res.status(400).json({ message: "Usuario no encontrado" });
 
+        // Verificar si el usuario está bloqueado
+        if (user.lockedUntil && user.lockedUntil > Date.now()) {
+            const remainingTime = Math.ceil((user.lockedUntil - Date.now()) / 1000);
+            return res.status(403).json({
+                message: `Tu cuenta está bloqueada. Inténtalo de nuevo en ${remainingTime} segundos.`,
+            });
+        }
+
+        // Comparar la contraseña
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             user.failedLoginAttempts += 1;
-            if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) user.lockUntil = Date.now() + LOGIN_TIMEOUT;
+
+            // Bloqueo después de demasiados intentos fallidos
+            if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+                user.lockedUntil = Date.now() + LOGIN_TIMEOUT; // Bloqueo temporal
+                await user.save();
+                return res.status(403).json({
+                    message: `Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo más tarde.`,
+                });
+            }
+
             await user.save();
-            return res.status(400).json({ message: `Contraseña incorrecta. Intentos fallidos: ${user.failedLoginAttempts}/${MAX_FAILED_ATTEMPTS}` });
+            return res.status(400).json({
+                message: `Contraseña incorrecta. Intentos fallidos: ${user.failedLoginAttempts}/${MAX_FAILED_ATTEMPTS}`,
+            });
         }
 
+        // Restablecer intentos fallidos y desbloquear si la contraseña es correcta
         user.failedLoginAttempts = 0;
-        user.lockUntil = null;
+        user.lockedUntil = null;
         await user.save();
 
-        const token = jwt.sign({ userId: user._id, role: user.role, name: user.name }, SECRET, { expiresIn: '2h' });
+        // Verificar si la cuenta está verificada
+        if (!user.verified) 
+            return res.status(403).json({ message: "Tu cuenta aún no ha sido verificada. Revisa tu correo electrónico." });
+
+        // Generar token
+        const token = jwt.sign(
+            { userId: user._id, role: user.role, name: user.name },
+            SECRET,
+            { expiresIn: '2h' }
+        );
+
         res.status(200).json({
             message: "Inicio de sesión exitoso",
             token,
-            user: { id: user._id, name: user.name, email: user.email, role: user.role }
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
         });
     } catch (error) {
         console.error("Error en login:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
-
 // Controlador checkSession en User.controller.js
 export const checkSession = (req, res) => {
     try {
@@ -235,8 +317,8 @@ export const getRecentBlockedUsers = async (req, res) => {
         });
 
         // Crear el enlace de restablecimiento
-        const resetUrl = `http://localhost:3000/restorepassword/${token}`;
-        //const resetUrl = `https://front-munoz.vercel.app/restorepassword/${token}`;
+        //const resetUrl = `http://localhost:3000/restorepassword/${token}`;
+        const resetUrl = `https://front-munoz.vercel.app/restorepassword/${token}`;
 
         // Enviar el correo con el enlace de restablecimiento de contraseña
         await transporter.sendMail({

@@ -8,7 +8,14 @@ export const subirLogo = async (req, res) => {
         // Usa multer con Cloudinary para procesar la subida
         upload.single('file')(req, res, async (err) => {
             if (err) {
+                if (err.message === 'El archivo debe ser una imagen válida (JPG, PNG, etc.)') {
+                    return res.status(400).json({ message: err.message });
+                }
                 return res.status(500).json({ message: 'Error al subir la imagen' });
+            }
+
+            if (!req.file) {
+                return res.status(400).json({ message: 'No se ha enviado un archivo válido.' });
             }
 
             // Crear un nuevo documento en la colección de logos
@@ -29,7 +36,6 @@ export const subirLogo = async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
-
 // Obtener el logo más reciente
 export const obtenerUltimoLogo = async (req, res) => {
     try {

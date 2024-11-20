@@ -19,6 +19,16 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+// Filtro para validar el tipo de archivo
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); // Aceptar el archivo
+  } else {
+    cb(new Error('El archivo debe ser una imagen válida (JPG, PNG, etc.)'), false); // Rechazar el archivo
+  }
+};
+
+// Configuración de Multer con almacenamiento y filtro
+const upload = multer({ storage: storage, fileFilter });
 
 export { upload };

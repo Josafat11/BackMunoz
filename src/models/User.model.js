@@ -17,7 +17,7 @@ const userSchema = new Schema({
     }
   },
   fechadenacimiento: { type: Date, required: true },
-  user: { type: String, required: true, unique: true, trim: true },
+  user: { type: String, required: true, trim: true },
   preguntaSecreta: { type: String, required: true },
   respuestaSecreta: { type: String, required: true },
   password: { type: String, required: true },  // Campo de contraseña encriptada
