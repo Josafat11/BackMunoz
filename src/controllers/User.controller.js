@@ -55,7 +55,7 @@ export const signUp = async (req, res) => {
 
         // Enlace de verificación
         //const verificationUrl = `http://localhost:3000/verify/${token}`;
-        const verificationUrl = `https://front-munoz.vercel.app/verify/${token}`;
+        const verificationUrl = `https://frontend-alpha-six-22.vercel.app/verify/${token}`;
 
         // Enviar correo de verificación
         await transporter.sendMail({
@@ -318,7 +318,7 @@ export const getRecentBlockedUsers = async (req, res) => {
 
         // Crear el enlace de restablecimiento
         //const resetUrl = `http://localhost:3000/restorepassword/${token}`;
-        const resetUrl = `https://front-munoz.vercel.app/restorepassword/${token}`;
+        const resetUrl = `https://frontend-alpha-six-22.vercel.app/restorepassword/${token}`;
 
         // Enviar el correo con el enlace de restablecimiento de contraseña
         await transporter.sendMail({
