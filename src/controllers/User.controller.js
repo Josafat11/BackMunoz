@@ -140,7 +140,10 @@ export const login = async (req, res) => {
 
             // Bloqueo después de demasiados intentos fallidos
             if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-                user.lockedUntil = Date.now() + LOGIN_TIMEOUT; // Bloqueo temporal
+                const baseLockTime = 1 * 60 * 1000; // Tiempo base de bloqueo (1 minuto)
+                const lockTime = baseLockTime * Math.pow(2, user.lockCount); // Incremento exponencial
+                user.lockedUntil = Date.now() + lockTime;
+                user.lockCount += 1; // Incrementar el contador de bloqueos
                 await user.save();
                 return res.status(403).json({
                     message: `Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo más tarde.`,
@@ -156,6 +159,15 @@ export const login = async (req, res) => {
         // Restablecer intentos fallidos y desbloquear si la contraseña es correcta
         user.failedLoginAttempts = 0;
         user.lockedUntil = null;
+        user.lockCount = 0; // Reinicia el contador de bloqueos tras un inicio exitoso
+        
+        // Registrar el inicio de sesión
+        user.lastLogin = new Date(); // Actualizar el último inicio de sesión
+        if (user.loginHistory.length >= 10) {
+            user.loginHistory.shift(); // Elimina el inicio de sesión más antiguo si hay más de 10
+        }
+        user.loginHistory.push(new Date()); // Agregar la fecha actual al historial
+        
         await user.save();
 
         // Verificar si la cuenta está verificada
@@ -177,6 +189,7 @@ export const login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                lastLogin: user.lastLogin, // Devolver último inicio de sesión
             },
         });
     } catch (error) {
@@ -184,6 +197,9 @@ export const login = async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
+
+
 // Controlador checkSession en User.controller.js
 export const checkSession = (req, res) => {
     try {
@@ -289,17 +305,42 @@ export const getRecentUsers = async (req, res) => {
 //informacion de usuarios bloqueados
 export const getRecentBlockedUsers = async (req, res) => {
     try {
-      const blockedUsers = await User.find({
-        lockedUntil: { $exists: true, $gt: new Date() },
-      })
-        .sort({ lockedUntil: -1 })
-        .limit(5);
-      res.status(200).json(blockedUsers);
+        const recentBlockedUsers = await User.find({
+            $or: [
+                { lockedUntil: { $exists: true, $gt: new Date() } }, // Bloqueados temporalmente
+                { blocked: true }, // Bloqueados permanentemente
+                { updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }, // Desbloqueados recientemente (últimas 24 horas)
+            ],
+        })
+            .sort({ updatedAt: -1 }) // Ordenar por última actualización
+            .limit(10); // Limitar el resultado a 10 usuarios
+
+        // Enriquecer los datos de los usuarios
+        const enrichedData = recentBlockedUsers.map(user => ({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            blockedPermanently: user.blocked,
+            lockedUntil: user.lockedUntil,
+            currentlyBlocked: user.blocked || (user.lockedUntil && user.lockedUntil > new Date()),
+            blockedType: user.blocked
+                ? "Permanent"
+                : user.lockedUntil > new Date()
+                ? "Temporary"
+                : "None",
+            wasRecentlyBlocked: user.updatedAt >= new Date(Date.now() - 24 * 60 * 60 * 1000),
+            lastUpdated: user.updatedAt,
+        }));
+
+        res.status(200).json(enrichedData);
     } catch (error) {
-      console.error("Error al obtener usuarios bloqueados:", error);
-      res.status(500).json({ message: "Error al obtener usuarios bloqueados" });
+        console.error("Error al obtener usuarios bloqueados:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
-  };
+};
+
+  
+
 
   export const sendPasswordResetLink = async (req, res) => {
     const { email } = req.body;
@@ -336,6 +377,105 @@ export const getRecentBlockedUsers = async (req, res) => {
         res.status(200).json({ message: "Correo de restablecimiento enviado con éxito." });
     } catch (error) {
         console.error("Error en sendPasswordResetLink:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+
+export const getFailedLoginAttempts = async (req, res) => {
+    try {
+        const usersWithFailedAttempts = await User.find({ failedLoginAttempts: { $gt: 0 } })
+            .sort({ failedLoginAttempts: -1 }) // Ordenar por mayor cantidad de intentos fallidos
+            .limit(10) // Límite opcional
+            .select('name email failedLoginAttempts lockedUntil updatedAt'); // Selecciona campos relevantes
+
+        const enrichedData = usersWithFailedAttempts.map(user => ({
+            id: user._id, // Incluye el _id del usuario
+            name: user.name,
+            email: user.email,
+            failedLoginAttempts: user.failedLoginAttempts,
+            lockedUntil: user.lockedUntil,
+            lastFailedAttempt: user.updatedAt,
+            isLocked: user.lockedUntil && user.lockedUntil > Date.now() ? true : false
+        }));
+
+        res.status(200).json(enrichedData);
+    } catch (error) {
+        console.error("Error al obtener intentos fallidos:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+
+
+export const blockUser = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        // Verifica que se envíe el ID del usuario
+        if (!userId) {
+            return res.status(400).json({ message: "ID de usuario es requerido." });
+        }
+
+        // Buscar al usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado." });
+        }
+
+        // Bloquear al usuario de forma permanente
+        user.blocked = true;
+        user.lockedUntil = null; // Limpia cualquier bloqueo temporal previo
+        await user.save();
+
+        res.status(200).json({ message: "Usuario bloqueado permanentemente." });
+    } catch (error) {
+        console.error("Error al bloquear al usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+};
+
+
+
+export const unblockUser = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        // Verifica que se envíe el ID del usuario
+        if (!userId) {
+            return res.status(400).json({ message: "ID de usuario es requerido." });
+        }
+
+        // Buscar al usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado." });
+        }
+
+        // Desbloquear al usuario
+        user.lockedUntil = null; // Eliminar bloqueo temporal
+        user.blocked = false; // Eliminar bloqueo permanente
+        user.failedLoginAttempts = 0; // Restablecer intentos fallidos
+        user.lockCount = 0; // Restablecer contador de bloqueos
+        await user.save();
+
+        res.status(200).json({ message: "Usuario desbloqueado exitosamente." });
+    } catch (error) {
+        console.error("Error al desbloquear al usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+};
+
+export const getRecentLogins = async (req, res) => {
+    try {
+        const recentLogins = await User.find({ lastLogin: { $exists: true } })
+            .sort({ lastLogin: -1 }) // Ordenar por el inicio de sesión más reciente
+            .limit(10) // Limitar a los 10 más recientes
+            .select('name email lastLogin'); // Seleccionar campos relevantes
+
+        res.status(200).json(recentLogins);
+    } catch (error) {
+        console.error("Error al obtener inicios de sesión recientes:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };

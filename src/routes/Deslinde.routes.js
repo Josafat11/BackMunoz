@@ -1,19 +1,25 @@
 import { Router } from 'express';
-import * as deslindeLegalController from '../controllers/Deslinde.controller.js';
-import { isAuthenticated, isAdmin } from '../middleware/auth.js';  // Middleware de autenticación y permisos
+import * as deslindeController from '../controllers/Deslinde.controller.js';
+import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Ruta para crear un nuevo deslinde legal (requiere ser administrador)
-router.post('/deslinde-legal', isAuthenticated, isAdmin, deslindeLegalController.createDeslindeLegal);
+// Crear un deslinde
+router.post('/deslinde', isAuthenticated, isAdmin, deslindeController.createDeslinde);
 
-// Ruta para actualizar el deslinde legal actual (requiere ser administrador)
-router.put('/deslinde-legal/:id', isAuthenticated, isAdmin, deslindeLegalController.updateDeslindeLegal);
+// Obtener el deslinde actual
+router.get('/deslinde/current', deslindeController.getCurrentDeslinde);
 
-// Ruta para obtener el deslinde legal actual (disponible para todos los usuarios autenticados)
-router.get('/deslinde-legal/current', isAuthenticated, deslindeLegalController.getCurrentDeslindeLegal);
+// Obtener todos los deslindes
+router.get('/deslinde', isAuthenticated, isAdmin, deslindeController.getAllDeslindes);
 
-// Ruta para listar todas las versiones anteriores de un deslinde legal (requiere ser administrador)
-router.get('/deslinde-legal/:id/previous-versions', isAuthenticated, isAdmin, deslindeLegalController.getPreviousVersions);
+// Actualizar un deslinde
+router.put('/deslinde/:id', isAuthenticated, isAdmin, deslindeController.updateDeslinde);
+
+// Eliminar un deslinde
+router.delete('/deslinde/:id', isAuthenticated, isAdmin, deslindeController.deleteDeslinde);
+
+// Establecer un deslinde como actual
+router.put('/deslinde/:id/set-current', isAuthenticated, isAdmin, deslindeController.setAsCurrentDeslinde);
 
 export default router;

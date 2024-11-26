@@ -22,14 +22,20 @@ const userSchema = new Schema({
   respuestaSecreta: { type: String, required: true },
   password: { type: String, required: true },  // Campo de contraseña encriptada
   verified: { type: Boolean, default: false },  // Usuario verificado o no
-  role: { type: String, default: 'normal' },  // Rol del usuario, 'admin' o 'normal'
+  role: { 
+    type: String, 
+    default: 'normal', 
+    enum: ['normal', 'admin']  // Enum para restringir los roles válidos
+  },
   failedLoginAttempts: { type: Number, default: 0 },  // Intentos fallidos de inicio de sesión
   lockedUntil: { type: Date, default: null },  // Fecha y hora hasta que el usuario está bloqueado
-  createdAt: { type: Date, default: Date.now },  // Fecha de creación del usuario
   blocked: { type: Boolean, default: false },  // Si el usuario está bloqueado manualmente
+  lockCount: { type: Number, default: 0 }, // Contador de bloqueos progresivos
+  lastLogin: { type: Date, default: null }, // Último inicio de sesión
+  loginHistory: [{ type: Date }], // Historial de inicios de sesión
 }, {
-  timestamps: true,
-  versionKey: false
+  timestamps: true,  // Habilita createdAt y updatedAt automáticamente
+  versionKey: false  // Elimina el campo __v de Mongoose
 });
 
 const User = model('User', userSchema);

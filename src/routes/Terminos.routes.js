@@ -1,19 +1,25 @@
 import { Router } from 'express';
-import * as termsConditionsController from '../controllers/Terminos.controller.js';
-import { isAuthenticated, isAdmin } from '../middleware/auth.js'; // Importa los middlewares de autenticación y autorización
+import * as termsController from '../controllers/Terminos.controller.js';
+import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Ruta para crear nuevos términos y condiciones (requiere ser administrador)
-router.post('/terms-conditions', isAuthenticated, isAdmin, termsConditionsController.createTermsConditions);
+// Crear términos
+router.post('/terms', isAuthenticated, isAdmin, termsController.createTerms);
 
-// Ruta para actualizar los términos y condiciones actuales (requiere ser administrador)
-router.put('/terms-conditions/:id', isAuthenticated, isAdmin, termsConditionsController.updateTermsConditions);
+// Obtener términos actuales
+router.get('/terms/current', termsController.getCurrentTerms);
 
-// Ruta para obtener los términos y condiciones actuales (disponible para todos los usuarios autenticados)
-router.get('/terms-conditions/current', isAuthenticated, termsConditionsController.getCurrentTermsConditions);
+// Obtener todos los términos
+router.get('/terms', isAuthenticated, isAdmin, termsController.getAllTerms);
 
-// Ruta para listar todas las versiones anteriores de los términos y condiciones (requiere ser administrador)
-router.get('/terms-conditions/:id/previous-versions', isAuthenticated, isAdmin, termsConditionsController.getPreviousVersions);
+// Actualizar términos
+router.put('/terms/:id', isAuthenticated, isAdmin, termsController.updateTerms);
+
+// Eliminar términos
+router.delete('/terms/:id', isAuthenticated, isAdmin, termsController.deleteTerms);
+
+// Establecer términos como actuales
+router.put('/terms/:id/set-current', isAuthenticated, isAdmin, termsController.setAsCurrentTerms);
 
 export default router;

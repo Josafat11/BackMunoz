@@ -1,23 +1,25 @@
 import { Router } from 'express';
 import * as privacyPolicyController from '../controllers/Politicas.controller.js';
-import { isAuthenticated, isAdmin } from '../middleware/auth.js'; // Importa los middlewares de autenticación y autorización
+import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Ruta para crear una nueva política de privacidad (requiere ser administrador)
-router.post('/privacy-policy', isAuthenticated, isAdmin, privacyPolicyController.createOrUpdatePrivacyPolicy);
+// Crear una política
+router.post('/privacy-policy', isAuthenticated, isAdmin, privacyPolicyController.createPrivacyPolicy);
 
-// Ruta para actualizar la política de privacidad (requiere ser administrador)
-router.put('/privacy-policy/:id', isAuthenticated, isAdmin, privacyPolicyController.updatePrivacyPolicy);
-
-// Ruta para obtener la política de privacidad actual (disponible para todos los usuarios)
+// Obtener la política actual
 router.get('/privacy-policy/current', privacyPolicyController.getCurrentPrivacyPolicy);
 
+// Obtener todas las políticas
+router.get('/privacy-policy', isAuthenticated, isAdmin, privacyPolicyController.getAllPrivacyPolicies);
 
-// Ruta para listar todas las versiones anteriores de una política de privacidad (requiere ser administrador)
-router.get('/privacy-policy/:id/previous-versions', isAuthenticated, isAdmin, privacyPolicyController.getPreviousVersions);
-// Ruta para obtener la política de privacidad actual y sus versiones anteriores
-router.get('/privacy-policy/current-with-versions', privacyPolicyController.getCurrentPolicyWithVersions);
+// Actualizar una política
+router.put('/privacy-policy/:id', isAuthenticated, isAdmin, privacyPolicyController.updatePrivacyPolicy);
 
+// Eliminar una política
+router.delete('/privacy-policy/:id', isAuthenticated, isAdmin, privacyPolicyController.deletePrivacyPolicy);
+
+// Establecer una política como actual
+router.put('/privacy-policy/:id/set-current', isAuthenticated, isAdmin, privacyPolicyController.setAsCurrentPrivacyPolicy);
 
 export default router;

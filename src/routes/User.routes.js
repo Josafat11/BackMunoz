@@ -25,4 +25,17 @@ router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers);
 // Rutas del admin para ver usuarios recientes y bloqueados
 router.get('/admin/recent-users', isAuthenticated, isAdmin, userController.getRecentUsers);
 router.get('/admin/recent-blocked', isAuthenticated, isAdmin, userController.getRecentBlockedUsers);
+router.get('/admin/failed-login-attempts', isAuthenticated, isAdmin, userController.getFailedLoginAttempts);
+
+
+// Bloquear usuario
+router.post('/admin/block-user', isAuthenticated, isAdmin, userController.blockUser);
+
+// Desbloquear usuario
+router.post('/admin/unblock-user', isAuthenticated, isAdmin, userController.unblockUser);
+
+// Ruta del admin para ver inicios de sesión recientes
+router.get('/admin/recent-logins', isAuthenticated, isAdmin, userController.getRecentLogins);
+
+
 export default router;
