@@ -1,95 +1,165 @@
-import DeslindeLegal from '../models/Deslinde.model.js';
+import Deslinde from '../models/Deslinde.model.js';
+import sanitizeHtml from 'sanitize-html';
 
-// Crear un nuevo deslinde legal
-export const createDeslindeLegal = async (req, res) => {
-  try {
-    const { title, content, effectiveDate } = req.body;
+// Crear un nuevo deslinde
+export const createDeslinde = async (req, res) => {
+    try {
+        let { title, content, effectiveDate } = req.body;
 
-    // Crear un nuevo deslinde legal
-    const newDeslinde = new DeslindeLegal({
-      title,
-      content,
-      effectiveDate,
-    });
+        // Sanitizar los campos para prevenir scripts maliciosos
+        title = sanitizeHtml(title, {
+            allowedTags: [],
+            allowedAttributes: {},
+        });
 
-    // Guardar el deslinde legal en la base de datos
-    await newDeslinde.save();
+        content = sanitizeHtml(content, {
+            allowedTags: ["b", "i", "u"],
+            allowedAttributes: {},
+        });
 
-    res.status(201).json({ message: 'Deslinde legal creado exitosamente', deslinde: newDeslinde });
-  } catch (error) {
-    console.error("Error al crear el deslinde legal:", error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
+        // Validar campos requeridos
+        if (!title || !content || !effectiveDate) {
+            return res.status(400).json({
+                message: "Todos los campos son requeridos, revise su solicitud.",
+            });
+        }
+
+        // Validar que la fecha de vigencia no sea anterior a la fecha actual
+        if (new Date(effectiveDate) < new Date()) {
+            return res.status(400).json({
+                message: "La fecha de vigencia no puede ser anterior a la fecha actual.",
+            });
+        }
+
+        // Crear un nuevo deslinde
+        const newDeslinde = new Deslinde({
+            title,
+            content,
+            effectiveDate,
+            isCurrent: false, // Por defecto, no es actual
+        });
+
+        await newDeslinde.save();
+        return res.status(201).json({
+            message: "Deslinde creado exitosamente",
+            deslinde: newDeslinde,
+        });
+    } catch (error) {
+        console.error("Error al crear el deslinde:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
 };
 
-// Actualizar el deslinde legal actual y archivar la versión anterior
-export const updateDeslindeLegal = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, content, effectiveDate } = req.body;
+// Obtener el deslinde actual
+export const getCurrentDeslinde = async (req, res) => {
+    try {
+        const currentDeslinde = await Deslinde.findOne({ isCurrent: true });
 
-    // Buscar el deslinde legal actual por ID
-    const currentDeslinde = await DeslindeLegal.findById(id);
-    if (!currentDeslinde) {
-      return res.status(404).json({ message: 'Deslinde legal no encontrado' });
+        if (!currentDeslinde) {
+            return res.status(404).json({ message: 'No se encontró un deslinde actual' });
+        }
+
+        res.status(200).json(currentDeslinde);
+    } catch (error) {
+        console.error("Error al obtener el deslinde actual:", error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
-
-    // Mover la versión actual a la lista de versiones anteriores
-    currentDeslinde.previousVersions.push({
-      title: currentDeslinde.title,
-      content: currentDeslinde.content,
-      createdAt: currentDeslinde.createdAt,
-      effectiveDate: currentDeslinde.effectiveDate
-    });
-
-    // Actualizar el deslinde legal con los nuevos datos
-    currentDeslinde.title = title;
-    currentDeslinde.content = content;
-    currentDeslinde.effectiveDate = effectiveDate;
-    currentDeslinde.createdAt = Date.now();
-
-    // Guardar los cambios en la base de datos
-    await currentDeslinde.save();
-
-    res.status(200).json({ message: 'Deslinde legal actualizado exitosamente', deslinde: currentDeslinde });
-  } catch (error) {
-    console.error("Error al actualizar el deslinde legal:", error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
 };
 
-// Obtener el deslinde legal actual
-export const getCurrentDeslindeLegal = async (req, res) => {
-  try {
-    // Obtener el deslinde legal más reciente
-    const currentDeslinde = await DeslindeLegal.findOne().sort({ createdAt: -1 });
+// Obtener todos los deslindes
+export const getAllDeslindes = async (req, res) => {
+    try {
+        const deslindes = await Deslinde.find().sort({ createdAt: -1 });
 
-    if (!currentDeslinde) {
-      return res.status(404).json({ message: 'No se encontró un deslinde legal actual' });
+        res.status(200).json(deslindes);
+    } catch (error) {
+        console.error("Error al obtener todos los deslindes:", error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
-
-    res.status(200).json(currentDeslinde);
-  } catch (error) {
-    console.error("Error al obtener el deslinde legal actual:", error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
 };
 
-// Listar todas las versiones anteriores de un deslinde legal
-export const getPreviousVersions = async (req, res) => {
-  try {
-    const { id } = req.params;
+// Actualizar un deslinde existente
+export const updateDeslinde = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, content, effectiveDate } = req.body;
 
-    // Buscar el deslinde legal por su ID
-    const deslinde = await DeslindeLegal.findById(id);
-    if (!deslinde) {
-      return res.status(404).json({ message: 'Deslinde legal no encontrado' });
+        const updatedDeslinde = await Deslinde.findByIdAndUpdate(
+            id,
+            { title, content, effectiveDate },
+            { new: true }
+        );
+
+        if (!updatedDeslinde) {
+            return res.status(404).json({ message: 'No se encontró el deslinde a actualizar' });
+        }
+
+        res.status(200).json({ message: 'Deslinde actualizado exitosamente', deslinde: updatedDeslinde });
+    } catch (error) {
+        console.error("Error al actualizar el deslinde:", error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
+};
 
-    // Devolver las versiones anteriores
-    res.status(200).json(deslinde.previousVersions);
-  } catch (error) {
-    console.error("Error al obtener las versiones anteriores del deslinde legal:", error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
+// Eliminar un deslinde
+export const deleteDeslinde = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ message: "El ID del deslinde es requerido." });
+        }
+
+        const deslindeToDelete = await Deslinde.findById(id);
+        if (!deslindeToDelete) {
+            return res.status(404).json({ message: "Deslinde no encontrado." });
+        }
+
+        await Deslinde.findByIdAndDelete(id);
+
+        if (deslindeToDelete.isCurrent) {
+            const latestDeslinde = await Deslinde.findOne().sort({ createdAt: -1 });
+            if (latestDeslinde) {
+                latestDeslinde.isCurrent = true;
+                await latestDeslinde.save();
+                return res.status(200).json({
+                    message: "Deslinde eliminado y el más reciente establecido como actual.",
+                    latestDeslinde,
+                });
+            } else {
+                return res.status(200).json({
+                    message: "Deslinde eliminado. No hay más deslindes disponibles.",
+                });
+            }
+        }
+
+        return res.status(200).json({ message: "Deslinde eliminado exitosamente." });
+    } catch (error) {
+        console.error("Error al eliminar el deslinde:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+};
+
+// Establecer un deslinde como el actual
+export const setAsCurrentDeslinde = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await Deslinde.updateMany({ isCurrent: true }, { isCurrent: false });
+
+        const currentDeslinde = await Deslinde.findByIdAndUpdate(
+            id,
+            { isCurrent: true },
+            { new: true }
+        );
+
+        if (!currentDeslinde) {
+            return res.status(404).json({ message: 'No se encontró el deslinde a establecer como actual' });
+        }
+
+        res.status(200).json({ message: 'Deslinde marcado como actual exitosamente', deslinde: currentDeslinde });
+    } catch (error) {
+        console.error("Error al establecer el deslinde como actual:", error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
 };
