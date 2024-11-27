@@ -479,3 +479,36 @@ export const getRecentLogins = async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
+
+export const blockUserTemporarily = async (req, res) => {
+    try {
+        const { email, lockDuration } = req.body;
+
+        // Verifica que se envíen el correo y la duración
+        if (!email || !lockDuration) {
+            return res.status(400).json({ message: "Correo y duración de bloqueo son requeridos." });
+        }
+
+        // Buscar al usuario por correo
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado." });
+        }
+
+        // Convertir duración en minutos a milisegundos y calcular el tiempo de desbloqueo
+        const lockTimeInMs = lockDuration * 60 * 1000;
+        user.lockedUntil = new Date(Date.now() + lockTimeInMs);
+        user.blocked = false; // Asegúrate de que no sea un bloqueo permanente
+        user.lockCount += 1; // Incrementar el contador de bloqueos progresivos
+        await user.save();
+
+        res.status(200).json({
+            message: `Usuario bloqueado temporalmente por ${lockDuration} minuto(s).`,
+            lockedUntil: user.lockedUntil,
+        });
+    } catch (error) {
+        console.error("Error al bloquear al usuario temporalmente:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+};
