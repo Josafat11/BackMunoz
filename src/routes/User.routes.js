@@ -9,8 +9,6 @@ router.post('/signup', userController.signUp); // Registro de usuario
 router.post('/login', userController.login); // Inicio de sesión y entrega de token
 router.get('/verify/:token', userController.verifyAccount); // Verificar cuenta por token
 router.post('/send-reset-email', userController.sendPasswordResetLink);
-router.post('/reset-password/:token', userController.resetPassword);
-
 router.post('/reset-password/:token', userController.resetPassword); // Restablecer la contraseña
 
 // Rutas protegidas (requieren token de autenticación)
@@ -30,7 +28,8 @@ router.get('/admin/failed-login-attempts', isAuthenticated, isAdmin, userControl
 
 // Bloquear usuario
 router.post('/admin/block-user', isAuthenticated, isAdmin, userController.blockUser);
-
+// Bloquear usuario por tiempo
+router.post('/admin/block-user-temporarily', isAuthenticated, isAdmin, userController.blockUserTemporarily);
 // Desbloquear usuario
 router.post('/admin/unblock-user', isAuthenticated, isAdmin, userController.unblockUser);
 
