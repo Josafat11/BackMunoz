@@ -4,11 +4,11 @@ import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Crear términos
-router.post('/terms', isAuthenticated, isAdmin, termsController.createTerms);
-
 // Obtener términos actuales
 router.get('/terms/current', termsController.getCurrentTerms);
+
+// Crear términos
+router.post('/terms', isAuthenticated, isAdmin, termsController.createTerms);
 
 // Obtener todos los términos
 router.get('/terms', isAuthenticated, isAdmin, termsController.getAllTerms);
