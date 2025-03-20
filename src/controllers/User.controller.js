@@ -33,10 +33,9 @@ export const signUp = async (req, res) => {
   
       // 📅 Verificar si el correo ya está registrado para evitar duplicados
       const existingUser = await prisma.usuarios.findUnique({ where: { email } });
-      if (existingUser) {
+      if (existingUser)  {
         return res.status(400).json({ message: "El correo ya existe" });
-      }
-  
+      }  
       // 🔑 Hashear la contraseña antes de guardarla (bcrypt con salt)
       const hashedPassword = await bcrypt.hash(password, 10);
   
@@ -126,141 +125,141 @@ export const signUp = async (req, res) => {
   };
 
 
-// Controlador login para autenticación con JWT en User.controller.js
-export const login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-  
-      // Validación mínima
-      if (!email || !password) {
-        return res.status(400).json({ message: "Correo y contraseña son requeridos" });
-      }
-  
-      // 1. Buscar al usuario en la tabla "Usuarios" por email
-      const user = await prisma.usuarios.findUnique({
-        where: { email },
-      });
-  
-      if (!user) {
-        return res.status(400).json({ message: "Usuario no encontrado" });
-      }
-  
-      // 2. Verificar si el usuario está actualmente bloqueado
-      if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
-        const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
-        return res.status(403).json({
-          message: `Tu cuenta está bloqueada. Inténtalo de nuevo en ${remainingTime} segundos.`,
+  // Controlador login para autenticación con JWT en User.controller.js
+  export const login = async (req, res) => {
+      try {
+        const { email, password } = req.body;
+    
+        // Validación mínima
+        if (!email || !password) {
+          return res.status(400).json({ message: "Correo y contraseña son requeridos" });
+        }
+    
+        // 1. Buscar al usuario en la tabla "Usuarios" por email
+        const user = await prisma.usuarios.findUnique({
+          where: { email },
         });
-      }
-  
-      // 3. Comparar contraseñas con bcrypt
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        // Incrementar los intentos fallidos
-        const newFailedAttempts = user.failedLoginAttempts + 1;
-  
-        if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
-          // Bloqueo exponencial
-          const lockTime = LOGIN_TIMEOUT * Math.pow(2, user.lockCount);
+    
+        if (!user) {
+          return res.status(400).json({ message: "Usuario no encontrado" });
+        }
+    
+        // 2. Verificar si el usuario está actualmente bloqueado
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+          const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
+          return res.status(403).json({
+            message: `Tu cuenta está bloqueada. Inténtalo de nuevo en ${remainingTime} segundos.`,
+          });
+        }
+    
+        // 3. Comparar contraseñas con bcrypt
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          // Incrementar los intentos fallidos
+          const newFailedAttempts = user.failedLoginAttempts + 1;
+    
+          if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+            // Bloqueo exponencial
+            const lockTime = LOGIN_TIMEOUT * Math.pow(2, user.lockCount);
+            await prisma.usuarios.update({
+              where: { id: user.id },
+              data: {
+                failedLoginAttempts: newFailedAttempts,
+                lockedUntil: new Date(Date.now() + lockTime),
+                lockCount: user.lockCount + 1,
+              },
+            });
+            return res.status(403).json({
+              message: "Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo más tarde.",
+            });
+          }
+    
+          // Aún no alcanza el máximo: solo incrementa
           await prisma.usuarios.update({
             where: { id: user.id },
             data: {
               failedLoginAttempts: newFailedAttempts,
-              lockedUntil: new Date(Date.now() + lockTime),
-              lockCount: user.lockCount + 1,
             },
           });
-          return res.status(403).json({
-            message: "Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo más tarde.",
+    
+          return res.status(400).json({
+            message: `Contraseña incorrecta. Intentos fallidos: ${newFailedAttempts}/${MAX_FAILED_ATTEMPTS}`,
           });
         }
-  
-        // Aún no alcanza el máximo: solo incrementa
-        await prisma.usuarios.update({
+    
+        // 4. Contraseña correcta -> resetear intentos fallidos y desbloquear
+        let updatedUser = await prisma.usuarios.update({
           where: { id: user.id },
           data: {
-            failedLoginAttempts: newFailedAttempts,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+            lockCount: 0,
+            lastLogin: new Date(), // Registra el último inicio de sesión
           },
         });
-  
-        return res.status(400).json({
-          message: `Contraseña incorrecta. Intentos fallidos: ${newFailedAttempts}/${MAX_FAILED_ATTEMPTS}`,
-        });
-      }
-  
-      // 4. Contraseña correcta -> resetear intentos fallidos y desbloquear
-      let updatedUser = await prisma.usuarios.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: 0,
-          lockedUntil: null,
-          lockCount: 0,
-          lastLogin: new Date(), // Registra el último inicio de sesión
-        },
-      });
-  
-      // 5. Verificar si el usuario está verificado
-      if (!updatedUser.verified) {
-        return res.status(403).json({
-          message: "Tu cuenta aún no ha sido verificada. Revisa tu correo electrónico.",
-        });
-      }
-  
-      // 6.  Registrar el login en la tabla LoginHistory
-      // Si quieres limitar a los últimos 10 logins:
-      const countHistory = await prisma.loginHistory.count({
-        where: { userId: updatedUser.id },
-      });
-      if (countHistory >= 10) {
-        const oldest = await prisma.loginHistory.findMany({
-          where: { userId: updatedUser.id },
-          orderBy: { loginDate: 'asc' },
-          take: 1,
-        });
-        if (oldest.length > 0) {
-          await prisma.loginHistory.delete({ where: { id: oldest[0].id } });
+    
+        // 5. Verificar si el usuario está verificado
+        if (!updatedUser.verified) {
+          return res.status(403).json({
+            message: "Tu cuenta aún no ha sido verificada. Revisa tu correo electrónico.",
+          });
         }
+    
+        // 6.  Registrar el login en la tabla LoginHistory
+        // Si quieres limitar a los últimos 10 logins:
+        const countHistory = await prisma.loginHistory.count({
+          where: { userId: updatedUser.id },
+        });
+        if (countHistory >= 10) {
+          const oldest = await prisma.loginHistory.findMany({
+            where: { userId: updatedUser.id },
+            orderBy: { loginDate: 'asc' },
+            take: 1,
+          });
+          if (oldest.length > 0) {
+            await prisma.loginHistory.delete({ where: { id: oldest[0].id } });
+          }
+        }
+        // Crear un nuevo registro de historial
+        await prisma.loginHistory.create({
+          data: {
+            userId: updatedUser.id,
+            loginDate: new Date(), // o se usa el default(now()) de tu schema
+          },
+        });
+    
+        // 7. Generar el token JWT
+        const token = jwt.sign(
+          { userId: updatedUser.id, role: updatedUser.role, name: updatedUser.name },
+          SECRET,
+          { expiresIn: '2h' }
+        );
+    
+        // 8. Guardar el token en una cookie segura
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',  // false en desarrollo, true en producción
+          sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+          path: '/',
+          maxAge: 2 * 60 * 60 * 1000,
+        });
+        
+        // 9. Responder sin incluir el token en el body
+        return res.status(200).json({
+          message: "Inicio de sesión exitoso",
+          user: {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            lastLogin: updatedUser.lastLogin,
+          },
+        });
+      } catch (error) {
+        console.error("Error en login:", error);
+        return res.status(500).json({ message: "Error interno del servidor" });
       }
-      // Crear un nuevo registro de historial
-      await prisma.loginHistory.create({
-        data: {
-          userId: updatedUser.id,
-          loginDate: new Date(), // o se usa el default(now()) de tu schema
-        },
-      });
-  
-      // 7. Generar el token JWT
-      const token = jwt.sign(
-        { userId: updatedUser.id, role: updatedUser.role, name: updatedUser.name },
-        SECRET,
-        { expiresIn: '2h' }
-      );
-  
-      // 8. Guardar el token en una cookie segura
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',  // false en desarrollo, true en producción
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-        path: '/',
-        maxAge: 2 * 60 * 60 * 1000,
-      });
-      
-      // 9. Responder sin incluir el token en el body
-      return res.status(200).json({
-        message: "Inicio de sesión exitoso",
-        user: {
-          id: updatedUser.id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          role: updatedUser.role,
-          lastLogin: updatedUser.lastLogin,
-        },
-      });
-    } catch (error) {
-      console.error("Error en login:", error);
-      return res.status(500).json({ message: "Error interno del servidor" });
-    }
-  };
+    };
 
 
 // Controlador checkSession en User.controller.js
