@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
  * Crear un nuevo producto con imágenes subidas a Cloudinary
- */
-export const crearProducto = async (req, res) => {
+ */ export const crearProducto = async (req, res) => {
   try {
-    // 1. Primero extraemos los campos de req.body
     const {
       name,
       description,
@@ -16,36 +14,55 @@ export const crearProducto = async (req, res) => {
       category,
       brand,
       discount,
-      supplierId,
-      compatibilities,
+      makes, // Puede llegar como string en JSON
+      models, // Puede llegar como string en JSON
+      years, // Puede llegar como string en JSON
     } = req.body;
 
-    // 2. Validar campos requeridos
-    if (!name || !partNumber || !supplierId) {
-      return res.status(400).json({
-        message: "Faltan campos obligatorios (name, partNumber, supplierId).",
-      });
+    // 📌 Convertir los datos de JSON string a array si es necesario
+    const parsedMakes = typeof makes === "string" ? JSON.parse(makes) : makes;
+    const parsedModels =
+      typeof models === "string" ? JSON.parse(models) : models;
+    const parsedYears = typeof years === "string" ? JSON.parse(years) : years;
+
+    // 📌 Validar que sean arrays reales si hay datos
+    if (
+      (parsedMakes.length > 0 || parsedModels.length > 0 || parsedYears.length > 0) &&
+      (!Array.isArray(parsedMakes) ||
+        !Array.isArray(parsedModels) ||
+        !Array.isArray(parsedYears))
+    ) {
+      return res
+        .status(400)
+        .json({
+          message: "Los campos makes, models y years deben ser arrays válidos.",
+        });
     }
 
-    // 3. Si 'compatibilities' viene como JSON string, parsearlo (opcional)
-    let compatArray = [];
-    if (compatibilities) {
-      try {
-        compatArray = JSON.parse(compatibilities); 
-        // compatibilities debe ser un string JSON en el body
-      } catch {
-        // o manejar error
-      }
+    // 📌 Validar que los arrays tengan la misma longitud si hay datos
+    if (
+      parsedMakes.length > 0 &&
+      (parsedMakes.length !== parsedModels.length ||
+        parsedMakes.length !== parsedYears.length)
+    ) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Los arrays de compatibilidad deben tener la misma cantidad de elementos.",
+        });
     }
 
-    // 4. 'req.files' son las imágenes subidas por Multer + Cloudinary
-    // Cada archivo tiene .path con la URL de Cloudinary
+    // 📌 Convertir years a números enteros solo si hay datos
+    const parsedYearsAsNumbers = parsedYears.map((year) => parseInt(year, 10));
+
+    // 📌 Manejo de imágenes (Cloudinary)
     let imagesURLs = [];
     if (req.files && req.files.length > 0) {
       imagesURLs = req.files.map((file) => file.path);
     }
 
-    // 5. Crear el producto en Prisma
+    // 📌 Crear el producto
     const newProduct = await prisma.productos.create({
       data: {
         name,
@@ -53,34 +70,30 @@ export const crearProducto = async (req, res) => {
         price: price ? Number(price) : 0,
         stock: stock ? Number(stock) : 0,
         partNumber,
-        category: category || "",
+        category,
         brand: brand || "",
         discount: discount ? Number(discount) : 0,
-        supplierId: Number(supplierId),
 
-        // Crear registros en Imagenes con createMany
         images: imagesURLs.length
-          ? {
-              create: imagesURLs.map((url) => ({ url })),
-            }
+          ? { create: imagesURLs.map((url) => ({ url })) }
           : undefined,
 
-        // Crear compatibilidades si las recibiste en el body
-        compatibilities: compatArray.length
-          ? {
-              create: compatArray.map((c) => ({
-                make: c.make,
-                model: c.model,
-                year: c.year,
-                engineType: c.engineType || null,
-              })),
-            }
-          : undefined,
+        // ✅ Solo agregar compatibilidad si hay datos
+        compatibilities:
+          parsedMakes.length > 0
+            ? {
+                create: parsedMakes.map((make, index) => ({
+                  make,
+                  model: parsedModels[index] || null, // Asignar null si no hay modelo
+                  year: parsedYearsAsNumbers[index] || null, // Asignar null si no hay año
+                  engineType: null, // Puedes agregar este campo si es necesario
+                })),
+              }
+            : undefined, // No intenta crear compatibilidad si no hay datos
       },
       include: {
         images: true,
         compatibilities: true,
-        supplier: true,
       },
     });
 
@@ -93,9 +106,6 @@ export const crearProducto = async (req, res) => {
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
-
-
-
 
 
 /**
@@ -158,7 +168,10 @@ export const actualizarProducto = async (req, res) => {
 
     // 2. Manejo de imágenes
     // Ejemplo: borrar las anteriores y crear las nuevas
-    if (typeof req.body.removeOldImages !== "undefined" && req.body.removeOldImages === "true") {
+    if (
+      typeof req.body.removeOldImages !== "undefined" &&
+      req.body.removeOldImages === "true"
+    ) {
       // Borrar imágenes anteriores
       await prisma.imagenes.deleteMany({ where: { productId: numericId } });
     }
@@ -175,8 +188,13 @@ export const actualizarProducto = async (req, res) => {
 
     // 3. Manejo de compatibilidades
     // Si deseas sobrescribirlas completamente:
-    if (typeof req.body.removeOldCompat !== "undefined" && req.body.removeOldCompat === "true") {
-      await prisma.compatibilidad.deleteMany({ where: { productId: numericId } });
+    if (
+      typeof req.body.removeOldCompat !== "undefined" &&
+      req.body.removeOldCompat === "true"
+    ) {
+      await prisma.compatibilidad.deleteMany({
+        where: { productId: numericId },
+      });
     }
 
     if (compatArray.length > 0) {
@@ -210,9 +228,6 @@ export const actualizarProducto = async (req, res) => {
   }
 };
 
-
-
-
 /**
  * Eliminar un producto
  */
@@ -245,7 +260,6 @@ export const eliminarProducto = async (req, res) => {
   }
 };
 
-
 /**
  * Obtener un producto por ID
  */
@@ -274,26 +288,21 @@ export const obtenerProductoPorId = async (req, res) => {
   }
 };
 
-
-
 /**
  * Obtener todos los productos
  */
 export const obtenerTodosLosProductos = async (req, res) => {
   try {
-    // Podrías incluir relaciones si lo deseas
     const productos = await prisma.productos.findMany({
       include: {
-        images: true,
-        compatibilities: true,
-        supplier: true,
+        images: true, // Incluir imágenes relacionadas
+        compatibilities: true, // Incluir compatibilidades relacionadas
       },
     });
+
     res.status(200).json(productos);
   } catch (error) {
     console.error("Error en obtenerTodosLosProductos:", error);
-    res.status(500).json({
-      message: "Error interno del servidor al obtener los productos.",
-    });
+    res.status(500).json({ message: "Error interno del servidor" });
   }
 };

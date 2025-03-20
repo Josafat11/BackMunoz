@@ -42,55 +42,44 @@ model LoginHistory {
 
 
 model Productos {
-  id           Int      @id @default(autoincrement())
-  name         String   @db.VarChar(100)
-  description  String   @db.VarChar(500)
-  price        Float    @default(0)
-  stock        Int      @default(0)
-  partNumber   String   @unique
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(100)
+  description  String        @db.VarChar(500)
+  price        Float         @default(0)
+  stock        Int           @default(0)
+  partNumber   String        @unique
   category     String
   brand        String
-  discount     Float?   @default(0)
-
-  // Relación con Proveedor
-  supplierId   Int
-  supplier     Proveedores @relation(fields: [supplierId], references: [id])
+  discount     Float?        @default(0)
 
   // Relación 1:N con imágenes
   images       Imagenes[]
 
   // Relación 1:N con compatibilidades
-  compatibilities Compatibilidad[]
+  compatibilities Compatibility[]  // Cambié Compatibilidad por Compatibility
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
 model Imagenes {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   url        String
   productId  Int
   producto   Productos @relation(fields: [productId], references: [id])
 }
 
-model Compatibilidad {
-  id          Int    @id @default(autoincrement())
-  make        String
-  model       String
-  year        Int
-  engineType  String?
-
-  productId   Int
-  producto    Productos @relation(fields: [productId], references: [id])
+model Compatibility {  // Cambié Compatibilidad por Compatibility
+  id         Int    @id @default(autoincrement())
+  make       String?
+  model      String? // Esto permite valores null
+  year       Int?    // Esto permite valores null
+  engineType String?
+  productId  Int
+  product    Productos @relation(fields: [productId], references: [id])  // Cambié Product por Productos
 }
 
-model Proveedores {
-  id          Int    @id @default(autoincrement())
-  name        String
 
-  // Relación inversa: Un proveedor puede tener muchos productos
-  productos   Productos[]
-}
 
 model Logos {
   id          Int      @id @default(autoincrement())
