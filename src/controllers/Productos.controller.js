@@ -288,21 +288,132 @@ export const obtenerProductoPorId = async (req, res) => {
   }
 };
 
-/**
- * Obtener todos los productos
- */
+// Obtener todos los productos con filtros
 export const obtenerTodosLosProductos = async (req, res) => {
+  const { search, categoria, minPrecio, maxPrecio, page = 1, pageSize = 10 } = req.query;
+
+  // Validar que page y pageSize sean números válidos
+  const pageNumber = parseInt(page, 10);
+  const pageSizeNumber = parseInt(pageSize, 10);
+
+  if (isNaN(pageNumber) || isNaN(pageSizeNumber) || pageNumber < 1 || pageSizeNumber < 1) {
+    return res.status(400).json({ message: "Parámetros de paginación inválidos." });
+  }
+
   try {
-    const productos = await prisma.productos.findMany({
-      include: {
-        images: true, // Incluir imágenes relacionadas
-        compatibilities: true, // Incluir compatibilidades relacionadas
+    // Obtener el número total de productos (para paginación)
+    const totalProductos = await prisma.productos.count({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: search || "",
+            },
+          },
+          {
+            description: {
+              contains: search || "",
+            },
+          },
+          {
+            category: {
+              contains: search || "",
+            },
+          },
+        ],
+        category: categoria ? { equals: categoria } : undefined,
+        price: {
+          gte: minPrecio ? parseFloat(minPrecio) : undefined,
+          lte: maxPrecio ? parseFloat(maxPrecio) : undefined,
+        },
       },
     });
 
-    res.status(200).json(productos);
+    // Obtener los productos paginados
+    const productos = await prisma.productos.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: search || "",
+            },
+          },
+          {
+            description: {
+              contains: search || "",
+            },
+          },
+          {
+            category: {
+              contains: search || "",
+            },
+          },
+        ],
+        category: categoria ? { equals: categoria } : undefined,
+        price: {
+          gte: minPrecio ? parseFloat(minPrecio) : undefined,
+          lte: maxPrecio ? parseFloat(maxPrecio) : undefined,
+        },
+      },
+      skip: (pageNumber - 1) * pageSizeNumber,
+      take: pageSizeNumber,
+      include: {
+        images: true,
+        compatibilities: true,
+      },
+    });
+
+    // Respuesta con información de paginación
+    res.status(200).json({
+      productos,
+      paginacion: {
+        paginaActual: pageNumber,
+        totalPaginas: Math.ceil(totalProductos / pageSizeNumber),
+        totalProductos,
+      },
+    });
   } catch (error) {
-    console.error("Error en obtenerTodosLosProductos:", error);
+    console.error("Error al obtener productos:", error);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+
+export const obtenerProductosAleatorios = async (req, res) => {
+  const { cantidad = 5 } = req.query; // Cantidad de productos aleatorios a obtener (por defecto 5)
+
+  try {
+    // Obtener el número total de productos
+    const totalProductos = await prisma.productos.count();
+
+    // Si hay menos productos que la cantidad solicitada, ajustar la cantidad
+    const cantidadFinal = Math.min(cantidad, totalProductos);
+
+    // Obtener todos los IDs de productos
+    const todosLosIds = await prisma.productos.findMany({
+      select: { id: true },
+    });
+
+    // Mezclar los IDs aleatoriamente
+    const idsAleatorios = todosLosIds
+      .map((producto) => producto.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, cantidadFinal);
+
+    // Obtener los productos con los IDs aleatorios
+    const productosAleatorios = await prisma.productos.findMany({
+      where: {
+        id: { in: idsAleatorios },
+      },
+      include: {
+        images: true, // Incluir imágenes
+        compatibilities: true, // Incluir compatibilidades
+      },
+    });
+
+    res.status(200).json(productosAleatorios);
+  } catch (error) {
+    console.error("Error al obtener productos aleatorios:", error);
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };

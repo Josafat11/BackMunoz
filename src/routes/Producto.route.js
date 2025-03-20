@@ -14,11 +14,15 @@ router.post('/crear', isAuthenticated, isAdmin, upload.array('images'), Producto
 // Se requiere autenticación y privilegios de administrador
 router.put('/:id', isAuthenticated, isAdmin, upload.array('images'), ProductosController.actualizarProducto);
 
+// src/rutas/productoRoutes.js
 // Obtener todos los productos (público)
 router.get('/', ProductosController.obtenerTodosLosProductos);
 
+
 // Obtener producto por ID (público)
 router.get('/:id', ProductosController.obtenerProductoPorId);
+// Obtener productos aleatorios
+router.get("/productos/aleatorios", ProductosController.obtenerProductosAleatorios);
 
 // "Eliminar" producto (o inactivarlo)
 // Se requiere autenticación y privilegios de administrador

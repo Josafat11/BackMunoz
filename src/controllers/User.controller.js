@@ -43,7 +43,8 @@ export const signUp = async (req, res) => {
       const token = jwt.sign({ email }, SECRET, { expiresIn: '1h' });
   
       // 💌 Enviar correo de verificación con enlace único
-      const verificationUrl = `https://frontend-alpha-six-22.vercel.app/verify/${token}`;
+      const verificationUrl = `http://localhost:3000/verify/${token}`;
+
       await transporter.sendMail({
         from: '"Soporte 👻" <jose1fat@gmail.com>',
         to: email,
@@ -515,8 +516,8 @@ export const getRecentBlockedUsers = async (req, res) => {
         });
 
         // Crear el enlace de restablecimiento
-        //const resetUrl = `http://localhost:3000/restorepassword/${token}`;
-        const resetUrl = `https://frontend-alpha-six-22.vercel.app/restorepassword/${token}`;
+        const resetUrl = `http://localhost:3000/restorepassword/${token}`;
+        //const resetUrl = `https://frontend-alpha-six-22.vercel.app/restorepassword/${token}`;
 
         // Enviar el correo con el enlace de restablecimiento de contraseña
         await transporter.sendMail({
