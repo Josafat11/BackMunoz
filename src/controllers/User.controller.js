@@ -1,4 +1,3 @@
-import User from "../models/User.model.js";
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -387,25 +386,47 @@ export const getProfile = async (req, res) => {
   };
 
 
-// Resetear contraseña
-export const resetPassword = async (req, res) => {
+  export const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
+  
     try {
-        const decoded = jwt.verify(token, SECRET);
-        const user = await User.findById(decoded.userId);
-        if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user.password = hashedPassword;
-        await user.save();
-        res.status(200).json({ message: "Contraseña actualizada exitosamente" });
+      // Verificar el token
+      const decoded = jwt.verify(token, SECRET);
+  
+      // Buscar el usuario por ID
+      const user = await prisma.usuarios.findUnique({
+        where: { id: decoded.userId },
+      });
+  
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+  
+      // Hashear la nueva contraseña
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // Actualizar la contraseña del usuario
+      await prisma.usuarios.update({
+        where: { id: decoded.userId },
+        data: { password: hashedPassword },
+      });
+  
+      res.status(200).json({ message: "Contraseña actualizada exitosamente" });
     } catch (error) {
-        console.error("Error en resetPassword:", error);
-        res.status(400).json({ message: "Token inválido o expirado" });
+      console.error("Error en resetPassword:", error);
+  
+      if (error.name === "TokenExpiredError") {
+        return res.status(400).json({ message: "Token expirado" });
+      }
+  
+      if (error.name === "JsonWebTokenError") {
+        return res.status(400).json({ message: "Token inválido" });
+      }
+  
+      res.status(500).json({ message: "Error interno del servidor" });
     }
-};
-
+  };
 
 //informacion de usuarios
 export const getRecentUsers = async (req, res) => {
@@ -499,46 +520,48 @@ export const getRecentBlockedUsers = async (req, res) => {
 };
   
 
+export const sendPasswordResetLink = async (req, res) => {
+  const { email } = req.body;
 
-  export const sendPasswordResetLink = async (req, res) => {
-    const { email } = req.body;
+  try {
+    // Buscar el usuario por email
+    const user = await prisma.usuarios.findUnique({
+      where: { email },
+    });
 
-    try {
-        // Buscar el usuario por email
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-        }
-
-        // Generar un token de restablecimiento de contraseña (expira en 1 hora)
-        const token = jwt.sign({ email: user.email, userId: user._id }, SECRET, {
-            expiresIn: "1h",
-        });
-
-        // Crear el enlace de restablecimiento
-        const resetUrl = `http://localhost:3000/restorepassword/${token}`;
-        //const resetUrl = `https://frontend-alpha-six-22.vercel.app/restorepassword/${token}`;
-
-        // Enviar el correo con el enlace de restablecimiento de contraseña
-        await transporter.sendMail({
-            from: '"Soporte 👻" <soporte@tucorreo.com>',  // Cambia el correo de soporte según tu configuración
-            to: user.email,
-            subject: "Restablece tu contraseña ✔️",
-            html: `
-                <p>Hola ${user.name},</p>
-                <p>Recibimos una solicitud para restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para continuar:</p>
-                <a href="${resetUrl}">Restablecer Contraseña</a>
-                <p>Este enlace expirará en 1 hora.</p>
-            `,
-        });
-
-        res.status(200).json({ message: "Correo de restablecimiento enviado con éxito." });
-    } catch (error) {
-        console.error("Error en sendPasswordResetLink:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
     }
-};
 
+    // Generar un token de restablecimiento de contraseña (expira en 1 hora)
+    const token = jwt.sign({ email: user.email, userId: user.id }, SECRET, {
+      expiresIn: "1h",
+    });
+
+    // Crear el enlace de restablecimiento
+    const resetUrl = `http://localhost:3000/restorepassword/${token}`;
+
+    // Enviar el correo con el enlace de restablecimiento de contraseña
+    await transporter.sendMail({
+      from: '"Soporte 👻" <soporte@tucorreo.com>', // Cambia el correo de soporte según tu configuración
+      to: user.email,
+      subject: "Restablece tu contraseña ✔️",
+      html: `
+        <p>Hola ${user.name},</p>
+        <p>Recibimos una solicitud para restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para continuar:</p>
+        <a href="${resetUrl}">Restablecer Contraseña</a>
+        <p>Este enlace expirará en 1 hora.</p>
+      `,
+    });
+
+    res
+      .status(200)
+      .json({ message: "Correo de restablecimiento enviado con éxito." });
+  } catch (error) {
+    console.error("Error en sendPasswordResetLink:", error);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
 
 export const getFailedLoginAttempts = async (req, res) => {
   try {
