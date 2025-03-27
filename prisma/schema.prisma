@@ -58,6 +58,9 @@ model Productos {
   // Relación 1:N con compatibilidades
   compatibilities Compatibility[]  // Cambié Compatibilidad por Compatibility
 
+  // relacion con ventas
+  sales        Sales[]       // Relación inversa a Sales
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -80,6 +83,17 @@ model Compatibility {  // Cambié Compatibilidad por Compatibility
 }
 
 
+model Sales {
+  id          Int       @id @default(autoincrement())
+  productId   Int       // Relación con el producto vendido
+  product     Productos @relation(fields: [productId], references: [id])
+  quantity    Int       @default(1)  // Cantidad vendida
+  salePrice   Float     // Precio unitario al momento de la venta (por si cambia después)
+  total       Float     // quantity * salePrice (redundante pero útil para consultas)
+  saleDate    DateTime  @default(now()) // Fecha de la venta
+  customerId  Int?      // Opcional: si luego quieres registrar clientes
+  // (Podrías añadir más campos como descuentos aplicados, vendedor, etc.)
+}
 
 model Logos {
   id          Int      @id @default(autoincrement())
