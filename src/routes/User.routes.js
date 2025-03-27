@@ -13,9 +13,10 @@ router.post('/reset-password/:token', userController.resetPassword); // Restable
 
 // Rutas protegidas (requieren token de autenticación)
 router.get('/profile', isAuthenticated, userController.getProfile); // Perfil del usuario 
+router.put('/update-profile', isAuthenticated, userController.updateProfile); // Actualizar perfil (NUEVA RUTA)
 router.get('/check-session', isAuthenticated, userController.checkSession); // Verificar la sesión
 router.post('/logout', isAuthenticated, userController.logout); // Cerrar sesión
-
+router.post('/verify-secret-question', userController.verifySecretQuestion);
 
 // Ruta protegida para obtener todos los usuarios (solo admin)
 router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers);
@@ -24,7 +25,6 @@ router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers);
 router.get('/admin/recent-users', isAuthenticated, isAdmin, userController.getRecentUsers);
 router.get('/admin/recent-blocked', isAuthenticated, isAdmin, userController.getRecentBlockedUsers);
 router.get('/admin/failed-login-attempts', isAuthenticated, isAdmin, userController.getFailedLoginAttempts);
-
 
 // Bloquear usuario
 router.post('/admin/block-user', isAuthenticated, isAdmin, userController.blockUser);
@@ -36,5 +36,7 @@ router.post('/admin/unblock-user', isAuthenticated, isAdmin, userController.unbl
 // Ruta del admin para ver inicios de sesión recientes
 router.get('/admin/recent-logins', isAuthenticated, isAdmin, userController.getRecentLogins);
 
+router.delete('/admin/users/:id', isAuthenticated, isAdmin, userController.deleteUser);
+router.put('/admin/users/:id', isAuthenticated, isAdmin, userController.adminUpdateUser);
 
 export default router;
