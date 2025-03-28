@@ -127,20 +127,40 @@ export const actualizarProducto = async (req, res) => {
       brand,
       discount,
       supplierId,
-      compatibilities,
+      makes,
+      models,
+      years,
     } = req.body;
 
-    // Parsear compatibilities si viene como JSON
-    let compatArray = [];
-    if (compatibilities) {
-      try {
-        compatArray = JSON.parse(compatibilities);
-      } catch {
-        // Manejar error de parseo
-      }
+    // Convertir los datos de JSON string a array si es necesario
+    const parsedMakes = typeof makes === "string" ? JSON.parse(makes) : makes || [];
+    const parsedModels = typeof models === "string" ? JSON.parse(models) : models || [];
+    const parsedYears = typeof years === "string" ? JSON.parse(years) : years || [];
+
+    // Validaciones consistentes con crearProducto
+    if (
+      (parsedMakes.length > 0 || parsedModels.length > 0 || parsedYears.length > 0) &&
+      (!Array.isArray(parsedMakes) || !Array.isArray(parsedModels) || !Array.isArray(parsedYears))
+    ) {
+      return res.status(400).json({
+        message: "Los campos makes, models y years deben ser arrays válidos.",
+      });
     }
 
-    // req.files son las nuevas imágenes subidas
+    if (
+      parsedMakes.length > 0 &&
+      (parsedMakes.length !== parsedModels.length ||
+      parsedMakes.length !== parsedYears.length)
+    ) {
+      return res.status(400).json({
+        message: "Los arrays de compatibilidad deben tener la misma cantidad de elementos.",
+      });
+    }
+
+    // Convertir years a números enteros
+    const parsedYearsAsNumbers = parsedYears.map((year) => parseInt(year, 10));
+
+    // Manejo de imágenes
     let newImagesURLs = [];
     if (req.files && req.files.length > 0) {
       newImagesURLs = req.files.map((file) => file.path);
@@ -167,16 +187,10 @@ export const actualizarProducto = async (req, res) => {
     }
 
     // 2. Manejo de imágenes
-    // Ejemplo: borrar las anteriores y crear las nuevas
-    if (
-      typeof req.body.removeOldImages !== "undefined" &&
-      req.body.removeOldImages === "true"
-    ) {
-      // Borrar imágenes anteriores
+    if (req.body.removeOldImages === "true") {
       await prisma.imagenes.deleteMany({ where: { productId: numericId } });
     }
 
-    // Crear las nuevas
     if (newImagesURLs.length > 0) {
       await prisma.imagenes.createMany({
         data: newImagesURLs.map((url) => ({
@@ -187,32 +201,30 @@ export const actualizarProducto = async (req, res) => {
     }
 
     // 3. Manejo de compatibilidades
-    // Si deseas sobrescribirlas completamente:
-    if (
-      typeof req.body.removeOldCompat !== "undefined" &&
-      req.body.removeOldCompat === "true"
-    ) {
+    if (parsedMakes.length > 0) {
+      await prisma.compatibilidad.deleteMany({
+        where: { productId: numericId },
+      });
+
+      await prisma.compatibilidad.createMany({
+        data: parsedMakes.map((make, index) => ({
+          make,
+          model: parsedModels[index] || null,
+          year: parsedYearsAsNumbers[index] || null,
+          engineType: null,
+          productId: numericId,
+        })),
+      });
+    } else if (req.body.removeOldCompat === "true") {
       await prisma.compatibilidad.deleteMany({
         where: { productId: numericId },
       });
     }
 
-    if (compatArray.length > 0) {
-      await prisma.compatibilidad.createMany({
-        data: compatArray.map((c) => ({
-          make: c.make,
-          model: c.model,
-          year: c.year,
-          engineType: c.engineType || null,
-          productId: numericId,
-        })),
-      });
-    }
-
-    // 4. Retornar el producto con sus relaciones actualizadas
+    // 4. Retornar el producto actualizado con relaciones
     const productWithRelations = await prisma.productos.findUnique({
       where: { id: numericId },
-      include: { images: true, compatibilities: true, supplier: true },
+      include: { images: true, compatibilities: true},
     });
 
     res.status(200).json({
@@ -227,7 +239,6 @@ export const actualizarProducto = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
-
 /**
  * Eliminar un producto
  */
@@ -417,3 +428,6 @@ export const obtenerProductosAleatorios = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
+
+
+
