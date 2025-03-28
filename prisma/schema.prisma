@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlserver"
-  url      = env("DATABASE_URL")
+  provider = "mysql"  // Cambiado de sqlserver a mysql
+  url      = env("DATABASE_URL")  // Asegúrate de que tu .env apunte a MySQL
 }
 
 generator client {
@@ -19,7 +19,7 @@ model Usuarios {
   respuestaSecreta    String
   password            String
   verified            Boolean         @default(false)
-  role                String          @default("normal") // en vez de enum
+  role                String          @default("normal")
   failedLoginAttempts Int             @default(0)
   lockedUntil         DateTime?
   blocked             Boolean         @default(false)
@@ -28,41 +28,54 @@ model Usuarios {
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
-  // Relación 1:N con LoginHistory
+  cart    Cart?   @relation(fields: [cartId], references: [id])
+  cartId  Int?    @unique
   loginHistories      LoginHistory[]
 }
 
 model LoginHistory {
   id         Int       @id @default(autoincrement())
   loginDate  DateTime  @default(now())
-  
   userId     Int
   usuarios   Usuarios  @relation(fields: [userId], references: [id])
 }
 
-
 model Productos {
   id           Int           @id @default(autoincrement())
-  name         String        @db.VarChar(100)
-  description  String        @db.VarChar(500)
+  name         String        // MySQL no necesita @db.VarChar, usa String directamente
+  description  String
   price        Float         @default(0)
   stock        Int           @default(0)
   partNumber   String        @unique
   category     String
   brand        String
   discount     Float?        @default(0)
-
-  // Relación 1:N con imágenes
   images       Imagenes[]
+  compatibilities Compatibility[]
+  sales        Sales[]
+  cartItems    CartItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
 
-  // Relación 1:N con compatibilidades
-  compatibilities Compatibility[]  // Cambié Compatibilidad por Compatibility
+model Cart {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  usuarios  Usuarios?
+  items     CartItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
 
-  // relacion con ventas
-  sales        Sales[]       // Relación inversa a Sales
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model CartItem {
+  id          Int       @id @default(autoincrement())
+  cart        Cart      @relation(fields: [cartId], references: [id])
+  cartId      Int
+  product     Productos @relation(fields: [productId], references: [id])
+  productId   Int
+  quantity    Int       @default(1)
+  addedAt     DateTime  @default(now())
+  @@unique([cartId, productId])
 }
 
 model Imagenes {
@@ -72,27 +85,25 @@ model Imagenes {
   producto   Productos @relation(fields: [productId], references: [id])
 }
 
-model Compatibility {  // Cambié Compatibilidad por Compatibility
+model Compatibility {
   id         Int    @id @default(autoincrement())
   make       String?
-  model      String? // Esto permite valores null
-  year       Int?    // Esto permite valores null
+  model      String?
+  year       Int?
   engineType String?
   productId  Int
-  product    Productos @relation(fields: [productId], references: [id])  // Cambié Product por Productos
+  product    Productos @relation(fields: [productId], references: [id])
 }
-
 
 model Sales {
   id          Int       @id @default(autoincrement())
-  productId   Int       // Relación con el producto vendido
+  productId   Int
   product     Productos @relation(fields: [productId], references: [id])
-  quantity    Int       @default(1)  // Cantidad vendida
-  salePrice   Float     // Precio unitario al momento de la venta (por si cambia después)
-  total       Float     // quantity * salePrice (redundante pero útil para consultas)
-  saleDate    DateTime  @default(now()) // Fecha de la venta
-  customerId  Int?      // Opcional: si luego quieres registrar clientes
-  // (Podrías añadir más campos como descuentos aplicados, vendedor, etc.)
+  quantity    Int       @default(1)
+  salePrice   Float
+  total       Float
+  saleDate    DateTime  @default(now())
+  customerId  Int?
 }
 
 model Logos {
@@ -100,7 +111,6 @@ model Logos {
   url         String
   fechaSubida DateTime @default(now())
   autor       String
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -111,12 +121,9 @@ model TerminosYCondiciones {
   content       String
   effectiveDate DateTime
   isCurrent     Boolean  @default(false)
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
-
 
 model PoliticasDePrivacidad {
   id            Int      @id @default(autoincrement())
@@ -124,11 +131,9 @@ model PoliticasDePrivacidad {
   content       String
   effectiveDate DateTime
   isCurrent     Boolean  @default(false)
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
 
 model DeslindeDeResponsabilidad {
   id            Int      @id @default(autoincrement())
@@ -136,7 +141,6 @@ model DeslindeDeResponsabilidad {
   content       String
   effectiveDate DateTime
   isCurrent     Boolean  @default(false)
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

@@ -12,6 +12,7 @@ import deslinde from './routes/Deslinde.routes.js';
 import logoRoutes from './routes/Logo.routes.js';
 import producto from './routes/Producto.route.js';
 import predicciones from './routes/Predicciones.routes.js';
+import carrito from './routes/Carrito.routes.js';
 
 // Lista blanca para CORS
 const listWhite = [
@@ -91,6 +92,7 @@ app.use('/api/docs', deslinde);
 app.use('/api/logo', logoRoutes);
 app.use('/api/productos', producto);
 app.use('/api/predicciones', predicciones);
+app.use('/api/carrito', carrito);
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
