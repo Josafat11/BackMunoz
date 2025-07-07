@@ -10,6 +10,10 @@ const router = Router();
 // Se requiere que el usuario esté autenticado y sea administrador
 router.post('/crear', isAuthenticated, isAdmin, upload.array('images'), ProductosController.crearProducto);
 
+
+//obtendremos todos los productos que tengan ofertas
+router.get('/ofertas', ProductosController.obtenerProductosConDescuento);
+
 // Actualizar producto y subir nuevas imágenes
 // Se requiere autenticación y privilegios de administrador
 router.put('/:id', isAuthenticated, isAdmin, upload.array('images'), ProductosController.actualizarProducto);
@@ -27,5 +31,6 @@ router.get("/productos/aleatorios", ProductosController.obtenerProductosAleatori
 // "Eliminar" producto (o inactivarlo)
 // Se requiere autenticación y privilegios de administrador
 router.delete('/:id', isAuthenticated, isAdmin, ProductosController.eliminarProducto);
+
 
 export default router;

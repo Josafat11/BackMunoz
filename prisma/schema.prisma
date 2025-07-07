@@ -31,6 +31,8 @@ model Usuarios {
   cart    Cart?   @relation(fields: [cartId], references: [id])
   cartId  Int?    @unique
   loginHistories      LoginHistory[]
+  pedidos Pedido[]
+  favoritos Favorito[] 
 }
 
 model LoginHistory {
@@ -56,6 +58,8 @@ model Productos {
   cartItems    CartItem[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  pedidoItems PedidoItem[]
+  favoritos Favorito[]  // Relación inversa para saber en qué favoritos está el producto
 }
 
 model Cart {
@@ -143,4 +147,41 @@ model DeslindeDeResponsabilidad {
   isCurrent     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Pedido {
+  id         Int       @id @default(autoincrement())
+  clienteId  Int
+  estado     EstadoPedido @default(EN_PROCESO)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  cliente    Usuarios   @relation(fields: [clienteId], references: [id])
+  items      PedidoItem[]
+}
+
+model PedidoItem {
+  id         Int       @id @default(autoincrement())
+  pedido     Pedido    @relation(fields: [pedidoId], references: [id])
+  pedidoId   Int
+  producto   Productos @relation(fields: [productoId], references: [id])
+  productoId Int
+  cantidad   Int
+}
+
+enum EstadoPedido {
+  EN_PROCESO
+  EN_CAMINO
+  ENTREGADO
+}
+
+model Favorito {
+  id        Int       @id @default(autoincrement())
+  user      Usuarios  @relation(fields: [userId], references: [id])
+  userId    Int
+  product   Productos @relation(fields: [productId], references: [id])
+  productId Int
+  addedAt   DateTime  @default(now())
+
+  @@unique([userId, productId]) // Un mismo producto no puede estar duplicado en favoritos de un usuario
 }
