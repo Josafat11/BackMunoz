@@ -13,20 +13,23 @@ import logoRoutes from './routes/Logo.routes.js';
 import producto from './routes/Producto.route.js';
 import predicciones from './routes/Predicciones.routes.js';
 import carrito from './routes/Carrito.routes.js';
+import relojRoutes from './routes/Reloj.routes.js';
+import favoritosRoutes from './routes/Favoritos.routes.js';
 
 // Lista blanca para CORS
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
     'https://frontend-alpha-six-22.vercel.app', // Frontend en producción
     'http://192.168.1.77:5000', // linux en desarrollo
-    'http://192.168.101.20:5000' // linux yamil
+    'http://192.168.101.20:5000', // linux yamil
+    'http://10.0.2.16' // Emulador de Android
 ];
 
 const corsOptions = {
     origin: listWhite,  // Permitir orígenes definidos
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,  // Importante para enviar cookies
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization',  'expires', 'Cache-Control', 'Pragma'],
 };
 
 const app = express();
@@ -93,6 +96,8 @@ app.use('/api/logo', logoRoutes);
 app.use('/api/productos', producto);
 app.use('/api/predicciones', predicciones);
 app.use('/api/carrito', carrito);
+app.use('/api/reloj', relojRoutes);
+app.use('/api/favoritos', favoritosRoutes);
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
