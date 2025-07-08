@@ -13,9 +13,21 @@ export const obtenerPedidosUsuario = async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         items: {
-          include: {
+          select: {
+            id: true,
+            cantidad: true,
+            precioUnitario: true,
+            subtotal: true,
             producto: {
-              include: { images: true }
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                partNumber: true,
+                brand: true,
+                images: true
+              }
             }
           }
         }
@@ -28,6 +40,7 @@ export const obtenerPedidosUsuario = async (req, res) => {
     res.status(500).json({ message: "Error al obtener los pedidos" });
   }
 };
+
 
 /**
  * Obtener detalle de un pedido específico
@@ -44,9 +57,21 @@ export const obtenerPedidoPorId = async (req, res) => {
       },
       include: {
         items: {
-          include: {
+          select: {
+            id: true,
+            cantidad: true,
+            precioUnitario: true,
+            subtotal: true,
             producto: {
-              include: { images: true }
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                partNumber: true,
+                brand: true,
+                images: true
+              }
             }
           }
         }
@@ -54,15 +79,16 @@ export const obtenerPedidoPorId = async (req, res) => {
     });
 
     if (!pedido) {
-      return res.status(404).json({ message: "Pedido no encontrado hola" });
+      return res.status(404).json({ message: "Pedido no encontrado" });
     }
 
     res.status(200).json({ pedido });
   } catch (error) {
-    console.error("Error al obtener pedido: hola2", error);
-    res.status(500).json({ message: "Error al obtener el pedido hola 3" });
+    console.error("Error al obtener pedido:", error);
+    res.status(500).json({ message: "Error al obtener el pedido" });
   }
 };
+
 
 /**
  * (Opcional) Actualizar estado del pedido (solo para admins)
