@@ -330,7 +330,6 @@ export const obtenerProductoPorId = async (req, res) => {
       include: {
         images: true,
         compatibilities: true,
-        supplier: true,
       },
     });
 

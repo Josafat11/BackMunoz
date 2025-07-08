@@ -150,24 +150,29 @@ model DeslindeDeResponsabilidad {
 }
 
 model Pedido {
-  id         Int       @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   clienteId  Int
-  estado     EstadoPedido @default(EN_PROCESO)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  estado     EstadoPedido  @default(EN_PROCESO)
+  total      Float         // ← NUEVO
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-  cliente    Usuarios   @relation(fields: [clienteId], references: [id])
+  cliente    Usuarios      @relation(fields: [clienteId], references: [id])
   items      PedidoItem[]
 }
 
 model PedidoItem {
-  id         Int       @id @default(autoincrement())
-  pedido     Pedido    @relation(fields: [pedidoId], references: [id])
-  pedidoId   Int
-  producto   Productos @relation(fields: [productoId], references: [id])
-  productoId Int
-  cantidad   Int
+  id           Int       @id @default(autoincrement())
+  pedido       Pedido    @relation(fields: [pedidoId], references: [id])
+  pedidoId     Int
+  producto     Productos @relation(fields: [productoId], references: [id])
+  productoId   Int
+  cantidad     Int
+  precioUnitario Float   // Precio del producto al momento de la compra
+  subtotal       Float   // precioUnitario * cantidad
 }
+
+
 
 enum EstadoPedido {
   EN_PROCESO
