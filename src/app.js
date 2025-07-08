@@ -15,6 +15,7 @@ import predicciones from './routes/Predicciones.routes.js';
 import carrito from './routes/Carrito.routes.js';
 import relojRoutes from './routes/Reloj.routes.js';
 import favoritosRoutes from './routes/Favoritos.routes.js';
+import pedidos from './routes/Pedidos.routes.js';
 
 // Lista blanca para CORS
 const listWhite = [
@@ -98,6 +99,7 @@ app.use('/api/predicciones', predicciones);
 app.use('/api/carrito', carrito);
 app.use('/api/reloj', relojRoutes);
 app.use('/api/favoritos', favoritosRoutes);
+app.use('/api/pedidos', pedidos)
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
