@@ -13,10 +13,12 @@ const environment = new paypal.core.SandboxEnvironment(
 );
 
 const client = new paypal.core.PayPalHttpClient(environment);
+
+
 export const crearOrdenPaypal = async (req, res) => {
   try {
     const userId = req.userId;
-    const { items, total, direccionId } = req.body;
+    const { items, total, direccionId, envio } = req.body; // incluir envio aquí también
 
     // Validar datos recibidos
     if (!items || !total || !Array.isArray(items)) {
@@ -33,21 +35,28 @@ export const crearOrdenPaypal = async (req, res) => {
       });
     }
 
-    // Verificar que el total coincida con la suma de los items
-    const calculatedTotal = items.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
+    // Calcular subtotal con descuento
+    const subtotalCalculado = items.reduce((sum, item) => {
+      const priceWithDiscount = item.price * (1 - (item.discount || 0) / 100);
+      return sum + priceWithDiscount * item.quantity;
     }, 0);
 
-    if (Math.abs(calculatedTotal - total) > 0.01) {
+    // Validar envío: si subtotal > 500 envío es 0, sino 99
+    const envioCalculado = subtotalCalculado > 500 ? 0 : 99;
+
+    // Validar total esperado
+    const totalCalculado = subtotalCalculado + envioCalculado;
+
+    if (Math.abs(totalCalculado - total) > 0.01) {
       return res.status(400).json({
         success: false,
-        message: "El total no coincide con la suma de los productos"
+        message: "El total no coincide con la suma de los productos y envío"
       });
     }
 
-    // Buscar la dirección en la base de datos y verificar que pertenezca al usuario
+
     const direccion = await prisma.direccion.findUnique({
-      where: { id: direccionId },
+      where: { id: parseInt(direccionId, 10) },
       include: { user: true }
     });
 
@@ -58,7 +67,7 @@ export const crearOrdenPaypal = async (req, res) => {
       });
     }
 
-    // Crear orden en PayPal con dirección de envío
+    // Crear orden PayPal (sin cambios)
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
@@ -70,17 +79,21 @@ export const crearOrdenPaypal = async (req, res) => {
           breakdown: {
             item_total: {
               currency_code: "USD",
-              value: total.toFixed(2)
+              value: subtotalCalculado.toFixed(2)
+            },
+            shipping: {
+              currency_code: "USD",
+              value: envioCalculado.toFixed(2)
             }
           }
         },
         shipping: {
           name: {
-            full_name: `${direccion.user.name} ${direccion.user.lastname}`// Si quieres usar el nombre del usuario, necesitas hacer include de Usuarios
+            full_name: `${direccion.user.name} ${direccion.user.lastname}`
           },
           address: {
             address_line_1: `${direccion.calle} ${direccion.numero}`,
-            address_line_2: "", // puedes agregar referencia si luego la agregas a la DB
+            address_line_2: "",
             admin_area_2: direccion.ciudad,
             admin_area_1: direccion.estado,
             postal_code: direccion.cp,
@@ -91,7 +104,7 @@ export const crearOrdenPaypal = async (req, res) => {
           name: item.name,
           unit_amount: {
             currency_code: "USD",
-            value: item.price.toFixed(2)
+            value: (item.price * (1 - (item.discount || 0) / 100)).toFixed(2)
           },
           quantity: item.quantity.toString(),
           sku: item.id.toString()
@@ -110,7 +123,7 @@ export const crearOrdenPaypal = async (req, res) => {
     res.status(200).json({
       success: true,
       orderId: order.result.id,
-      direccionId // lo devuelves para que el frontend lo conserve y lo envíe en /capture-order
+      direccionId
     });
 
   } catch (error) {
@@ -138,9 +151,17 @@ export const capturarOrdenPaypal = async (req, res) => {
       });
     }
 
-    // Verificar que la dirección sea válida y pertenezca al usuario
+    const direccionIdInt = parseInt(direccionId, 10);
+
+    if (isNaN(direccionIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: "direccionId debe ser un número válido"
+      });
+    }
+
     const direccion = await prisma.direccion.findUnique({
-      where: { id: direccionId }
+      where: { id: direccionIdInt }
     });
 
     if (!direccion || direccion.userId !== userId) {
@@ -196,7 +217,7 @@ export const capturarOrdenPaypal = async (req, res) => {
     const pedido = await prisma.pedido.create({
       data: {
         clienteId: userId,
-        direccionId: direccionId,
+        direccionId: direccionIdInt,
         total: amountValue,
         estado: "EN_PROCESO",
         items: {
