@@ -19,7 +19,7 @@ import relojRoutes from './routes/Reloj.routes.js';
 import favoritosRoutes from './routes/Favoritos.routes.js';
 import pedidos from './routes/Pedidos.routes.js';
 import paypalRoutes from './routes/paypal.routes.js';
-
+import direccionRoutes from './routes/direccion.routes.js';
 
 // Lista blanca para CORS
 const listWhite = [
@@ -105,7 +105,7 @@ app.use('/api/reloj', relojRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/pedidos', pedidos)
 app.use('/api/paypal', paypalRoutes);
-
+app.use('/api/direccion', direccionRoutes);
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
