@@ -1,9 +1,51 @@
 // src/controllers/Carrito.controller.js
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
+import axios from "axios"; // Asegúrate de instalar axios: npm install axios
+
+
+// Función para obtener recomendaciones desde el microservicio
+const obtenerRecomendaciones = async (partNumber) => {
+  try {
+    const response = await axios.get(
+      `https://munoz-db-micro-python.eyjlaq.easypanel.host/recommend/${partNumber}`,
+      { timeout: 3000 } // Timeout de 3 segundos
+    );
+    
+    // Verificar que la respuesta sea un array
+    if (!Array.isArray(response.data)) {
+      throw new Error("Formato de respuesta inválido");
+    }
+    
+    const partNumbersRecomendados = response.data.slice(0, 5); // Tomar máximo 5
+    
+    // Buscar productos en la base de datos
+    return await prisma.productos.findMany({
+      where: {
+        partNumber: { in: partNumbersRecomendados },
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        partNumber: true,
+        images: {
+          select: {
+            url: true
+          },
+          take: 1 // Solo la primera imagen
+        }
+      },
+      take: 5 // Limitar a 5 resultados
+    });
+  } catch (error) {
+    console.error("Error al obtener recomendaciones:", error.message);
+    return []; // Devolver array vacío en caso de error
+  }
+};
 
 /**
- * Agrega un producto al carrito del usuario
+ * Agrega un producto al carrito del usuario y devuelve recomendaciones
  */
 export const agregarAlCarrito = async (req, res) => {
   try {
@@ -55,6 +97,7 @@ export const agregarAlCarrito = async (req, res) => {
 
     // Verificar si el producto ya está en el carrito
     const itemExistente = carrito.items.find(item => item.productId === Number(productId));
+    let carritoActualizado;
 
     if (itemExistente) {
       // Actualizar la cantidad si el producto ya está en el carrito
@@ -84,20 +127,30 @@ export const agregarAlCarrito = async (req, res) => {
     }
 
     // Obtener el carrito actualizado para devolverlo
-    const carritoActualizado = await prisma.cart.findUnique({
+    carritoActualizado = await prisma.cart.findUnique({
       where: { id: carrito.id },
       include: {
         items: {
           include: {
-            product: true
+            product: {
+              include: {
+                images: {
+                  take: 1 // Solo la primera imagen
+                }
+              }
+            }
           }
         }
       }
     });
 
+    // OBTENER RECOMENDACIONES BASADAS EN EL PRODUCTO AÑADIDO
+    const recomendaciones = await obtenerRecomendaciones(producto.partNumber);
+
     return res.status(200).json({
       message: "Producto agregado al carrito exitosamente",
-      carrito: carritoActualizado
+      carrito: carritoActualizado,
+      recomendados: recomendaciones // Nuevo campo con productos recomendados
     });
 
   } catch (error) {
