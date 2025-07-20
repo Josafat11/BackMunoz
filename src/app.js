@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -16,6 +18,8 @@ import carrito from './routes/Carrito.routes.js';
 import relojRoutes from './routes/Reloj.routes.js';
 import favoritosRoutes from './routes/Favoritos.routes.js';
 import pedidos from './routes/Pedidos.routes.js';
+import paypalRoutes from './routes/paypal.routes.js';
+
 
 // Lista blanca para CORS
 const listWhite = [
@@ -100,6 +104,8 @@ app.use('/api/carrito', carrito);
 app.use('/api/reloj', relojRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/pedidos', pedidos)
+app.use('/api/paypal', paypalRoutes);
+
 
 app.get('/', (req, res) => {
     res.json({ msg: "Bienvenido a la API de tu proyecto" });
