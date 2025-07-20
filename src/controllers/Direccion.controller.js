@@ -11,11 +11,6 @@ export const obtenerDirecciones = async (req, res) => {
       where: {
         userId: userId
       }
-      // Si quieres ordenar por algún campo, usa uno que exista en tu modelo
-      // Por ejemplo, podrías ordenar por id si existe:
-      // orderBy: {
-      //   id: 'desc'
-      // }
     });
 
     res.status(200).json({
