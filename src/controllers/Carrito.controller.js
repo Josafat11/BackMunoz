@@ -9,18 +9,21 @@ const obtenerRecomendaciones = async (partNumber) => {
   try {
     const response = await axios.get(
       `https://munoz-db-micro-python.eyjlaq.easypanel.host/recommend/${partNumber}`,
-      { timeout: 3000 } // Timeout de 3 segundos
+      { timeout: 3000 }
     );
-    
-    // Verificar que la respuesta sea un array
-    if (!Array.isArray(response.data)) {
+
+    console.log("Respuesta cruda del microservicio:", response.data);
+
+    const recomendaciones = response.data.recomendations;
+
+    if (!Array.isArray(recomendaciones)) {
+      console.error("Estructura inesperada:", response.data);
       throw new Error("Formato de respuesta inválido");
     }
-    
-    const partNumbersRecomendados = response.data.slice(0, 5); // Tomar máximo 5
-    
-    // Buscar productos en la base de datos
-    return await prisma.productos.findMany({
+
+    const partNumbersRecomendados = recomendaciones.slice(0, 5);
+
+    const productos = await prisma.productos.findMany({
       where: {
         partNumber: { in: partNumbersRecomendados },
       },
@@ -31,18 +34,22 @@ const obtenerRecomendaciones = async (partNumber) => {
         partNumber: true,
         images: {
           select: {
-            url: true
+            url: true,
           },
-          take: 1 // Solo la primera imagen
-        }
+          take: 1,
+        },
       },
-      take: 5 // Limitar a 5 resultados
+      take: 5,
     });
+
+    return productos;
   } catch (error) {
     console.error("Error al obtener recomendaciones:", error.message);
-    return []; // Devolver array vacío en caso de error
+    return [];
   }
 };
+
+
 
 /**
  * Agrega un producto al carrito del usuario y devuelve recomendaciones
