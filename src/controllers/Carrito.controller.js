@@ -23,15 +23,20 @@ const obtenerRecomendaciones = async (partNumber) => {
 
     const partNumbersRecomendados = recomendaciones.slice(0, 5);
 
-    const productos = await prisma.productos.findMany({
+const productos = await prisma.productos.findMany({
       where: {
         partNumber: { in: partNumbersRecomendados },
       },
       select: {
         id: true,
         name: true,
+        description: true,
         price: true,
+        stock: true,
         partNumber: true,
+        category: true,
+        brand: true,
+        discount: true,
         images: {
           select: {
             url: true,
@@ -153,6 +158,7 @@ export const agregarAlCarrito = async (req, res) => {
 
     // OBTENER RECOMENDACIONES BASADAS EN EL PRODUCTO AÑADIDO
     const recomendaciones = await obtenerRecomendaciones(producto.partNumber);
+    console.log(recomendaciones);
 
     return res.status(200).json({
       message: "Producto agregado al carrito exitosamente",
