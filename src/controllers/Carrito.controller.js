@@ -31,6 +31,7 @@ const productos = await prisma.productos.findMany({
         id: true,
         name: true,
         description: true,
+        compatibilities: true,
         price: true,
         stock: true,
         partNumber: true,
@@ -44,8 +45,8 @@ const productos = await prisma.productos.findMany({
           take: 1,
         },
       },
-      take: 5,
-    });
+      take: 10,
+    });
 
     return productos;
   } catch (error) {

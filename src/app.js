@@ -63,7 +63,7 @@ app.use(
         imgSrc: ["'self'", "data:"],
   
         // connectSrc: Controla los orígenes a los que se puede conectar (fetch, websockets, etc.).
-        connectSrc: ["'self'", "https:", "http://localhost:4000"],
+        connectSrc: ["'self'", "https:", "http://localhost:4000", "http://localhost:3000"],
   
         // fontSrc: Restringe las fuentes que se pueden cargar a:
         fontSrc: ["'self'", "https:"],
