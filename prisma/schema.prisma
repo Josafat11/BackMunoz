@@ -1,11 +1,12 @@
 datasource db {
-  provider = "mysql"  // Cambiado de sqlserver a mysql
-  url      = env("DATABASE_URL")  // Asegúrate de que tu .env apunte a MySQL
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
+
 
 model Usuarios {
   id                  Int             @id @default(autoincrement())
