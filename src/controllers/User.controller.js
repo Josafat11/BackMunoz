@@ -47,7 +47,8 @@ export const signUp = async (req, res) => {
 
 
     await transporter.sendMail({
-      from: '"Soporte 👻" <jose1fat@gmail.com>',
+      from: '"Soporte Munoz" <9c06cd001@smtp-brevo.com>',
+      replyTo: "jose1fat@gmail.com",
       to: email,
       subject: "Verifica tu cuenta ✔️",
       html: `
@@ -619,9 +620,9 @@ export const sendPasswordResetLink = async (req, res) => {
 
     // Enviar el correo con el enlace de restablecimiento de contraseña
     await transporter.sendMail({
-      from: '"Soporte 👻" <soporte@jose1fat@gmail.com>', // Cambia el correo de soporte según tu configuración
-      to: user.email,
-      subject: "Restablece tu contraseña ✔️",
+      from: '"Soporte Munoz" <9c06cd001@smtp-brevo.com>',
+      to: email,
+      subject: "Verifica tu cuenta ✔️",
       html: `
         <p>Hola ${user.name},</p>
         <p>Recibimos una solicitud para restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para continuar:</p>

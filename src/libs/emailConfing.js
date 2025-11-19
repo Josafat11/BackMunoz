@@ -1,13 +1,12 @@
-import config from "../config.js";  // Importamos las credenciales
+import config from "../config.js";
 import nodemailer from "nodemailer";
 
 export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // ← IMPORTANTE: usar STARTTLS en lugar de SSL
+  host: config.MAILHOST,    // smtp-relay.brevo.com
+  port: config.MAILPORT,    // 587
+  secure: false,            // STARTTLS
   auth: {
-    user: config.MAILUSER,
-    pass: config.MAILPASS, // App Password
+    user: config.MAILUSER,  // 9c06cd001@smtp-brevo.com
+    pass: config.MAILPASS,  // tu clave SMTP
   },
 });
-
