@@ -23,19 +23,30 @@ import direccionRoutes from './routes/direccion.routes.js';
 
 // Lista blanca para CORS
 const listWhite = [
-    'http://localhost:3000',  // Frontend en desarrollo
-    'https://frontend-alpha-six-22.vercel.app', // Frontend en producción
-    'http://192.168.1.77:5000', // linux en desarrollo
-    'http://192.168.101.20:5000', // linux yamil
-    'http://10.0.2.16' // Emulador de Android
+  'http://localhost:3000',
+  'https://frontend-alpha-six-22.vercel.app',
+  'https://munoz.vercel.app',          // <--- AGREGA ESTE
+  'http://192.168.1.77:5000',
+  'http://192.168.101.20:5000',
+  'http://10.0.2.16'
 ];
 
+
 const corsOptions = {
-    origin: listWhite,  // Permitir orígenes definidos
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,  // Importante para enviar cookies
-    allowedHeaders: ['Content-Type', 'Authorization',  'expires', 'Cache-Control', 'Pragma'],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (listWhite.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("CORS no permitido ❌ " + origin));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'expires', 'Cache-Control', 'Pragma'],
 };
+
 
 const app = express();
 
@@ -49,32 +60,23 @@ app.use(helmet.frameguard({ action: 'deny' }));
 app.use(
     helmet.contentSecurityPolicy({
       directives: {
-        // defaultSrc: Establece la fuente por defecto para todo tipo de recursos
-        // a 'self', es decir, el mismo dominio/origen de la aplicación.
         defaultSrc: ["'self'"],
-  
-        // scriptSrc: Permite la carga de scripts únicamente desde:
         scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
-  
-        // styleSrc: Permite la carga de hojas de estilo desde:
         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-  
-        // imgSrc: Permite cargar imágenes únicamente desde:
         imgSrc: ["'self'", "data:"],
-  
-        // connectSrc: Controla los orígenes a los que se puede conectar (fetch, websockets, etc.).
-        connectSrc: ["'self'", "https:", "http://localhost:4000", "http://localhost:3000"],
-  
-        // fontSrc: Restringe las fuentes que se pueden cargar a:
+        connectSrc: [
+          "'self'",
+          "https:",
+          "http://localhost:4000",
+          "http://localhost:3000",
+          "https://backmunoz.onrender.com"
+        ],
         fontSrc: ["'self'", "https:"],
-  
-        // objectSrc: Bloquea la carga de contenido tipo <object>, <embed> o <applet>.
-        // Al usar 'none', no se permiten objetos externos en absoluto.
         objectSrc: ["'none'"],
       },
     })
-  );
-  
+);
+
 
 // Agrega el header X-Content-Type-Options para evitar sniffing
 app.use(helmet.noSniff());
@@ -108,12 +110,12 @@ app.use('/api/paypal', paypalRoutes);
 app.use('/api/direccion', direccionRoutes);
 
 app.get('/', (req, res) => {
-    res.json({ msg: "Bienvenido a la API de tu proyecto" });
+  res.json({ msg: "Bienvenido a la API de tu proyecto" });
 });
 
 // Manejo de rutas no encontradas (404)
 app.use((req, res, next) => {
-    res.status(404).json({ message: 'Ruta incorrecta' });
+  res.status(404).json({ message: 'Ruta incorrecta' });
 });
 
 export default app;
