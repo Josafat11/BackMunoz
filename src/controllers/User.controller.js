@@ -42,7 +42,9 @@ export const signUp = async (req, res) => {
     const token = jwt.sign({ email }, SECRET, { expiresIn: '1h' });
 
     // 💌 Enviar correo de verificación con enlace único
-    const verificationUrl = `http://localhost:3000/verify/${token}`;
+    //const verificationUrl = `http://localhost:3000/verify/${token}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
+
 
     await transporter.sendMail({
       from: '"Soporte 👻" <jose1fat@gmail.com>',
