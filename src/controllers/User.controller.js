@@ -275,8 +275,10 @@ export const login = async (req, res) => {
     });
 
     // 9. Responder sin incluir el token en el body
+    // además de set-cookie
     return res.status(200).json({
       message: "Inicio de sesión exitoso",
+      token, // <- agrega esto
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
