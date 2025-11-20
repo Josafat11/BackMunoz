@@ -34,7 +34,7 @@ router.post('/admin/block-user-temporarily', isAuthenticated, isAdmin, userContr
 router.post('/admin/unblock-user', isAuthenticated, isAdmin, userController.unblockUser);
 
 // Ruta del admin para ver inicios de sesión recientes
-router.get('/admin/recent-logins', isAuthenticated, isAdmin, userController.getRecentLogins);
+router.get('/admin/recent-logins', userController.getRecentLogins);
 
 router.delete('/admin/users/:id', isAuthenticated, isAdmin, userController.deleteUser);
 router.put('/admin/users/:id', isAuthenticated, isAdmin, userController.adminUpdateUser);
