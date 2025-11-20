@@ -262,7 +262,7 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       { userId: updatedUser.id, role: updatedUser.role, name: updatedUser.name },
       SECRET,
-      { expiresIn: '2h' }
+      { expiresIn: '24h' }
     );
 
     // 8. Guardar el token en una cookie segura

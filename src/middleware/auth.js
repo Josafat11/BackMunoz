@@ -6,34 +6,46 @@ const SECRET = process.env.JWT_SECRET || 'super-secret-key';
 export const isAuthenticated = (req, res, next) => {
     let token = null;
 
-    // 1. Intentar obtener token desde cookies (para web)
+    console.log("\n=======================================");
+    console.log("🔵 HEADERS RECIBIDOS:", req.headers);
+    console.log("=======================================\n");
+
+    // Token por cookie
     if (req.cookies?.token) {
+        console.log("🍪 Token desde cookie:", req.cookies.token);
         token = req.cookies.token;
     }
 
-    // 2. Intentar obtener token desde el header Authorization (para apps móviles)
+    // Token por header
     if (!token && req.headers.authorization) {
+        console.log("🔶 Header Authorization recibido:", req.headers.authorization);
+
         const [type, rawToken] = req.headers.authorization.split(" ");
-        if (type === "Bearer" && rawToken) {
-            token = rawToken;
-        }
+        console.log("🔸 Tipo:", type, " | Token extraído:", rawToken);
+
+        if (type === "Bearer") token = rawToken;
     }
 
-    // 3. Si no hay token, denegar acceso
+    console.log("🔑 Token FINAL usado en verificación:", token);
+
     if (!token) {
-        return res.status(401).json({ message: "Acceso denegado: falta el token de autenticación" });
+        return res.status(401).json({ message: "Acceso denegado: falta token de autenticación" });
     }
 
-    // 4. Verificar token
     try {
         const decoded = jwt.verify(token, SECRET);
+        console.log("🟩 TOKEN DECODIFICADO OK:", decoded);
+
         req.userId = decoded.userId;
         req.role = decoded.role;
-        next();
+
+        return next();
     } catch (error) {
+        console.log("🟥 ERROR AL VERIFICAR JWT:", error.message);
         return res.status(401).json({ message: "Token inválido o expirado" });
     }
 };
+
 
 export const isAdmin = (req, res, next) => {
     // Ahora req.role viene de la línea anterior
