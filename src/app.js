@@ -25,10 +25,14 @@ import direccionRoutes from './routes/direccion.routes.js';
 const listWhite = [
   'http://localhost:3000',
   'https://frontend-alpha-six-22.vercel.app',
-  'https://munoz.vercel.app',          // <--- AGREGA ESTE
+  'https://munoz.vercel.app',
   'http://192.168.1.77:5000',
   'http://192.168.101.20:5000',
-  'http://10.0.2.16'
+  'http://10.0.2.16',
+  'http://192.168.1.71:8081',  // 👈 TU IP ACTUAL DE EXPO
+  'exp://192.168.1.71:8081',   // 👈 PROTOCOLO EXPO
+  'http://192.168.1.71:19000', // 👈 PUERTO ALTERNATIVO
+  'exp://192.168.1.71:19000'   // 👈 PROTOCOLO EXPO ALTERNATIVO
 ];
 
 
@@ -53,8 +57,6 @@ const app = express();
 // --- Seguridad: Evitar divulgación de información interna ---
 // Desactiva el header X-Powered-By
 app.disable('x-powered-by');
-
-// Anti-Clickjacking: impide que la app se cargue en iframes de otros dominios
 app.use(helmet.frameguard({ action: 'deny' }));
 
 app.use(
@@ -69,7 +71,9 @@ app.use(
           "https:",
           "http://localhost:4000",
           "http://localhost:3000",
-          "https://backmunoz.onrender.com"
+          "https://backmunoz.onrender.com",
+          "http://192.168.1.71:8081",  // 👈 AÑADE ESTO TAMBIÉN
+          "exp://192.168.1.71:8081"    // 👈 Y ESTO
         ],
         fontSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
