@@ -316,14 +316,14 @@ export const checkSession = (req, res) => {
 };
 
 
-//cerrar sesion
 export const logout = (req, res) => {
-  // 1. Borrar la cookie que llamaste "token" en el login
-  res.clearCookie('token');
+  // borrar cookie si existe
+  res.clearCookie("token");
 
-  // 2. Devolver un mensaje de éxito
+  // devolver respuesta genérica
   return res.status(200).json({ message: "Sesión cerrada con éxito" });
 };
+
 
 
 // Middleware para verificar token
