@@ -21,7 +21,7 @@ import pedidos from './routes/Pedidos.routes.js';
 import paypalRoutes from './routes/paypal.routes.js';
 import direccionRoutes from './routes/direccion.routes.js';
 
-// Lista blanca para CORS
+// Lista blanca para CORS - ACTUALIZADA
 const listWhite = [
   'http://localhost:3000',
   'https://frontend-alpha-six-22.vercel.app',
@@ -29,12 +29,15 @@ const listWhite = [
   'http://192.168.1.77:5000',
   'http://192.168.101.20:5000',
   'http://10.0.2.16',
-  'http://192.168.1.71:8081',  // 👈 TU IP ACTUAL DE EXPO
-  'exp://192.168.1.71:8081',   // 👈 PROTOCOLO EXPO
-  'http://192.168.1.71:19000', // 👈 PUERTO ALTERNATIVO
-  'exp://192.168.1.71:19000'   // 👈 PROTOCOLO EXPO ALTERNATIVO
+  'http://192.168.1.71:8081',
+  'exp://192.168.1.71:8081',
+  'http://192.168.1.71:19000',
+  'exp://192.168.1.71:19000',
+  'http://10.37.133.98:8081',    // 👈 NUEVA IP DE EXPO
+  'exp://10.37.133.98:8081',     // 👈 NUEVO PROTOCOLO EXPO
+  'http://10.37.133.98:19000',   // 👈 PUERTO ALTERNATIVO
+  'exp://10.37.133.98:19000'     // 👈 PROTOCOLO ALTERNATIVO
 ];
-
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -51,11 +54,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'expires', 'Cache-Control', 'Pragma'],
 };
 
-
 const app = express();
 
 // --- Seguridad: Evitar divulgación de información interna ---
-// Desactiva el header X-Powered-By
 app.disable('x-powered-by');
 app.use(helmet.frameguard({ action: 'deny' }));
 
@@ -72,8 +73,10 @@ app.use(
           "http://localhost:4000",
           "http://localhost:3000",
           "https://backmunoz.onrender.com",
-          "http://192.168.1.71:8081",  // 👈 AÑADE ESTO TAMBIÉN
-          "exp://192.168.1.71:8081"    // 👈 Y ESTO
+          "http://192.168.1.71:8081",
+          "exp://192.168.1.71:8081",
+          "http://10.37.133.98:8081",    // 👈 AÑADE ESTO TAMBIÉN
+          "exp://10.37.133.98:8081"     // 👈 Y ESTO
         ],
         fontSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
