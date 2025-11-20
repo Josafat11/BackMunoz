@@ -29,14 +29,10 @@ const listWhite = [
   'http://192.168.1.77:5000',
   'http://192.168.101.20:5000',
   'http://10.0.2.16',
-  'http://192.168.1.71:8081',
-  'exp://192.168.1.71:8081',
-  'http://192.168.1.71:19000',
-  'exp://192.168.1.71:19000',
-  'http://10.37.133.98:8081',    // 👈 NUEVA IP DE EXPO
-  'exp://10.37.133.98:8081',     // 👈 NUEVO PROTOCOLO EXPO
-  'http://10.37.133.98:19000',   // 👈 PUERTO ALTERNATIVO
-  'exp://10.37.133.98:19000'     // 👈 PROTOCOLO ALTERNATIVO
+  'http://10.35.217.98:8081',    // 👈 NUEVA IP DE EXPO
+  'exp://10.35.217.98:8081',     // 👈 NUEVO PROTOCOLO EXPO
+  'http://10.35.217.98:19000',   // 👈 PUERTO ALTERNATIVO
+  'exp://10.35.217.98:19000'     // 👈 PROTOCOLO ALTERNATIVO
 ];
 
 const corsOptions = {
@@ -73,10 +69,8 @@ app.use(
           "http://localhost:4000",
           "http://localhost:3000",
           "https://backmunoz.onrender.com",
-          "http://192.168.1.71:8081",
-          "exp://192.168.1.71:8081",
-          "http://10.37.133.98:8081",    // 👈 AÑADE ESTO TAMBIÉN
-          "exp://10.37.133.98:8081"     // 👈 Y ESTO
+          "http://10.35.217.98:8081",    // 👈 AÑADE ESTO TAMBIÉN
+          "exp://10.35.217.98:8081"     // 👈 Y ESTO
         ],
         fontSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
