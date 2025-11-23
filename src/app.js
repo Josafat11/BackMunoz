@@ -7,7 +7,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 // Importación de rutas
-import user from './routes/Usewr.routes.js';
+import user from './routes/User.routes.js';
 import politicas from './routes/Politicas.routes.js';
 import terminos from './routes/Terminos.routes.js';
 import deslinde from './routes/Deslinde.routes.js';
