@@ -484,11 +484,11 @@ export const obtenerProductosAleatorios = async (req, res) => {
 
 export const obtenerProductosConDescuento = async (req, res) => {
   try {
+    res.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+
     const productosConDescuento = await prisma.productos.findMany({
       where: {
-        discount: {
-          gt: 0, // Solo productos con descuento mayor a 0
-        },
+        discount: { gt: 0 },
       },
       include: {
         images: true,
