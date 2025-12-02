@@ -1,9 +1,13 @@
 import { Router } from "express";
 import * as userController from "../controllers/User.controller.js";
 import { isAuthenticated, isAdmin } from '../middleware/auth.js';
+import { googleLogin } from "../controllers/GoogleAuth.controller.js";
 
 const router = Router();
 
+
+// Ruta para login con Google
+router.post('/google', googleLogin);
 // Rutas públicas
 router.post('/signup', userController.signUp); // Registro de usuario
 router.post('/login', userController.login); // Inicio de sesión y entrega de token
